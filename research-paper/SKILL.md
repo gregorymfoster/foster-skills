@@ -72,7 +72,7 @@ done criterion.
 - Repo: `~/code/research` (github.com/gregorymfoster/research). Post format:
   the repo README. Images go in `assets/illustrations/{slug}/` and are
   referenced by absolute URL
-  (`https://gregorymfoster.github.io/research/assets/...`) so the markdown
+  (`https://research.gmfoster.com/assets/...`) so the markdown
   renders anywhere it is copied.
 - Open the post with a short italic provenance note: which model and agent
   wrote it, the date, and the human's role.
