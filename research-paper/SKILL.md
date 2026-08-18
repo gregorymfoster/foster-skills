@@ -112,9 +112,15 @@ return rather than trusting their confidence.
   pass the relevant canonical JPEGs as style references to every render. Keep
   information density in exact labels, spacing, and relationships rather than
   color-coded cards or stock icons.
-- Minimal density, 3 to 5 images. Favor charts of the piece's own
-  numerical results, plus at most one scene; every label carries the
-  article's actual numbers or terms.
+- Plan the figures as a visual sequence, not as repeated variants of one
+  infographic. Use at least two visual grammars when the subject permits:
+  precise charts for the article's own numerical results, and one scene or
+  conceptual illustration that makes the stakes tangible. A house style is
+  not a license to turn every figure into a handwritten worksheet.
+- Default to 3 to 5 images, or 4 to 6 when the user explicitly asks for many.
+  Every label carries the article's actual numbers or terms. Beauty, visual
+  hierarchy, and reader interest are part of the inspection gate alongside
+  factual accuracy and information density.
 - Save the outline and one prompt file per image before generating, and
   commit them beside the images so any image can be regenerated later.
 - Convert images to JPEG before committing; aim under 300 KB each.
