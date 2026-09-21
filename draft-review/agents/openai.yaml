@@ -1,0 +1,4 @@
+interface:
+  display_name: "Draft Review"
+  short_description: "Annotated essay feedback for your next manual revision"
+  default_prompt: "Use $draft-review to review my draft and create an annotated HTML feedback page while leaving the writing to me."
