@@ -13,11 +13,21 @@ from pathlib import Path
 
 CATEGORIES = ('structure', 'ideas', 'clarity', 'voice', 'mechanics', 'strength')
 PRIORITIES = ('high', 'medium', 'low')
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 
 
 def esc(value):
     return html.escape(str(value), quote=True)
+
+
+def quote_position(draft, quote, occurrence, label):
+    matches = [m.start() for m in re.finditer('(?=' + re.escape(quote) + ')', draft)]
+    if len(matches) > 1 and occurrence is None:
+        raise ValueError(f'Ambiguous quote in {label}; supply occurrence.')
+    number = 1 if occurrence is None else occurrence
+    if type(number) is not int or not 1 <= number <= len(matches):
+        raise ValueError(f'Quote occurrence not found in {label}: {quote!r}')
+    return matches[number - 1]
 
 
 def validate(data, draft):
@@ -33,6 +43,58 @@ def validate(data, draft):
             raise ValueError(f'{field} must be a list of strings.')
     if not data.get('priorities'):
         raise ValueError('Provide at least one revision priority or deliberate next step.')
+    stage = data.get('stage', 'development')
+    if stage not in ('structure', 'development'):
+        raise ValueError('stage must be structure or development.')
+    data['stage'] = stage
+    outline = data.get('reverse_outline', [])
+    if not isinstance(outline, list) or (stage == 'structure' and not outline):
+        raise ValueError('A structure pass needs a reverse_outline list with at least one block.')
+    previous = -1
+    for number, block in enumerate(outline, 1):
+        if not isinstance(block, dict):
+            raise ValueError('Each reverse_outline block must be an object.')
+        for field in ('label', 'job', 'diagnosis', 'quote'):
+            if not isinstance(block.get(field), str) or not block[field].strip():
+                raise ValueError(f'Reverse outline block {number} needs {field}.')
+        position = quote_position(draft, block['quote'], block.get('occurrence'), f'reverse_outline block {number}')
+        if position <= previous:
+            raise ValueError('Reverse outline blocks must follow draft order.')
+        block['position'] = position
+        previous = position
+    through_lines = data.get('through_lines', [])
+    if not isinstance(through_lines, list):
+        raise ValueError('through_lines must be a list.')
+    recommended = 0
+    selected = 0
+    for number, line in enumerate(through_lines, 1):
+        if not isinstance(line, dict):
+            raise ValueError('Each through_line must be an object.')
+        for field in ('title', 'question', 'use', 'set_aside', 'needs'):
+            if not isinstance(line.get(field), str) or not line[field].strip():
+                raise ValueError(f'Through-line {number} needs {field}.')
+        if not isinstance(line.get('recommended', False), bool):
+            raise ValueError(f'Through-line {number} recommended must be boolean.')
+        if not isinstance(line.get('selected', False), bool):
+            raise ValueError(f'Through-line {number} selected must be boolean.')
+        recommended += bool(line.get('recommended', False))
+        selected += bool(line.get('selected', False))
+    if recommended > 1:
+        raise ValueError('Recommend at most one through-line.')
+    if selected > 1:
+        raise ValueError('Mark at most one selected through-line.')
+    patterns = data.get('patterns', [])
+    if not isinstance(patterns, list):
+        raise ValueError('patterns must be a list.')
+    for number, pattern in enumerate(patterns, 1):
+        if not isinstance(pattern, dict):
+            raise ValueError('Each pattern must be an object.')
+        for field in ('title', 'why', 'practice'):
+            if not isinstance(pattern.get(field), str) or not pattern[field].strip():
+                raise ValueError(f'Pattern {number} needs {field}.')
+        evidence = pattern.get('evidence')
+        if not isinstance(evidence, list) or len(evidence) < 2 or any(not isinstance(q, str) or not q.strip() or q not in draft for q in evidence) or len(set(evidence)) != len(evidence):
+            raise ValueError(f'Pattern {number} needs two distinct exact evidence excerpts from the draft.')
     if not isinstance(data.get('notes'), list):
         raise ValueError('notes must be a list.')
     ids = set()
@@ -52,29 +114,29 @@ def validate(data, draft):
         quote = note.get('quote', '')
         if not isinstance(quote, str) or not isinstance(note.get('alternative', ''), str):
             raise ValueError('quote and alternative must be strings.')
+        if stage == 'structure' and note.get('alternative'):
+            raise ValueError('Structure passes do not include wording alternatives.')
         if not quote:
             note['range'] = None
             continue
-        matches = [m.start() for m in re.finditer('(?=' + re.escape(quote) + ')', draft)]
-        if len(matches) > 1 and 'occurrence' not in note:
-            raise ValueError(f'Ambiguous quote in {note["id"]}; supply occurrence.')
-        occurrence = note.get('occurrence', 1)
-        if type(occurrence) is not int or not 1 <= occurrence <= len(matches):
-            raise ValueError(f'Quote occurrence not found in {note["id"]}: {quote!r}')
-        start = matches[occurrence - 1]
+        start = quote_position(draft, quote, note.get('occurrence'), note['id'])
         note['range'] = [start, start + len(quote)]
     return data
 
 
-def render_draft(draft, notes):
+def render_draft(draft, notes, outline=()):
     points = {0, len(draft)}
     for n in notes:
         if n['range']:
             points.update(n['range'])
+    outline_starts = {block['position']: number for number, block in enumerate(outline, 1)}
+    points.update(outline_starts)
     parts, seen = [], set()
     points = sorted(points)
     for start, end in zip(points, points[1:]):
         text = esc(draft[start:end])
+        if start in outline_starts:
+            parts.append(f'<span id="outline-{outline_starts[start]}" class="outline-anchor"></span>')
         active = [n for n in notes if n['range'] and n['range'][0] <= start < n['range'][1]]
         if active:
             identifiers = ' '.join(n['id'] for n in active)
@@ -86,6 +148,39 @@ def render_draft(draft, notes):
         else:
             parts.append(text)
     return ''.join(parts)
+
+
+def render_outline(outline, draft):
+    if not outline:
+        return ''
+    cards = []
+    word_total = max(1, len(draft.split()))
+    for index, block in enumerate(outline):
+        start = 0 if index == 0 else block['position']
+        end = outline[index + 1]['position'] if index + 1 < len(outline) else len(draft)
+        share = round(100 * len(draft[start:end].split()) / word_total)
+        cards.append(f'''<li class="outline-item"><a href="#outline-{index + 1}"><span class="outline-number">{index + 1:02d}</span><span class="outline-copy"><strong>{esc(block['label'])}</strong><span>{esc(block['job'])}</span></span><span class="outline-share">{share}%</span></a><div class="outline-meter" aria-hidden="true"><span style="width:{share}%"></span></div><p>{esc(block['diagnosis'])}</p></li>''')
+    return '<section class="architecture" aria-labelledby="outline-title"><div class="section-heading"><div class="eyebrow">Current sequence</div><h2 id="outline-title">Reverse outline</h2><p>Each bar shows roughly how much of the draft this block occupies. Select a block to find its start.</p></div><ol class="outline-list">' + ''.join(cards) + '</ol></section>'
+
+
+def render_through_lines(lines):
+    if not lines:
+        return ''
+    cards = []
+    for line in lines:
+        badge = '<span class="recommended">Your choice</span>' if line.get('selected') else ('<span class="recommended">Editorial pick</span>' if line.get('recommended') else '')
+        cards.append(f'''<article class="through-line"><h3>{esc(line['title'])}{badge}</h3><p class="through-question">{esc(line['question'])}</p><dl><div><dt>Use</dt><dd>{esc(line['use'])}</dd></div><div><dt>Set aside</dt><dd>{esc(line['set_aside'])}</dd></div><div><dt>Needs</dt><dd>{esc(line['needs'])}</dd></div></dl></article>''')
+    return '<section class="architecture" aria-labelledby="through-title"><div class="section-heading"><div class="eyebrow">Possible centers</div><h2 id="through-title">Through-lines to test</h2><p>These are choices about the essay’s direction, not replacement prose.</p></div><div class="through-grid">' + ''.join(cards) + '</div></section>'
+
+
+def render_patterns(patterns):
+    if not patterns:
+        return ''
+    cards = []
+    for pattern in patterns:
+        evidence = ''.join('<li>“' + esc(q) + '”</li>' for q in pattern['evidence'])
+        cards.append(f'''<article class="pattern"><h3>{esc(pattern['title'])}</h3><ul class="pattern-evidence">{evidence}</ul><p><b>Why it matters</b> {esc(pattern['why'])}</p><p><b>Practice</b> {esc(pattern['practice'])}</p></article>''')
+    return '<section class="architecture" aria-labelledby="patterns-title"><div class="section-heading"><div class="eyebrow">Evidence from this draft</div><h2 id="patterns-title">Patterns to watch</h2></div><div class="pattern-grid">' + ''.join(cards) + '</div></section>'
 
 
 def render_notes(notes):
@@ -105,12 +200,18 @@ def page(data, draft):
     template = (Path(__file__).resolve().parent.parent / 'assets' / 'review.html').read_text()
     replacements = {
         'TITLE': esc(data['title']), 'LABEL': esc(data['draft_label']),
+        'STAGE': 'Structure pass' if data['stage'] == 'structure' else 'Development pass',
         'DATE': esc(data['created_at'][:10]), 'COUNT': str(len(data['notes'])),
         'WORDS': str(len(draft.split())), 'INTENT': esc(data['intent']),
         'RESPONSE': esc(data['reader_response']),
         'PRIORITIES': ''.join('<li>' + esc(x) + '</li>' for x in data['priorities']),
         'ASSUMPTIONS': ('<p class="assumptions"><b>Assumptions:</b> ' + esc(' '.join(data['assumptions'])) + '</p>') if data.get('assumptions') else '',
-        'DRAFT': render_draft(draft, data['notes']), 'NOTES': render_notes(data['notes']),
+        'OUTLINE': render_outline(data.get('reverse_outline', []), draft),
+        'THROUGHLINES': render_through_lines(data.get('through_lines', [])),
+        'PATTERNS': render_patterns(data.get('patterns', [])),
+        'MAPNAV': '<a href="#outline-title">Review the shape ↓</a>' if data.get('reverse_outline') else '',
+        'DRAFT': render_draft(draft, data['notes'], data.get('reverse_outline', [])), 'NOTES': render_notes(data['notes']),
+        'EMPTY': 'No margin notes for this pass.' if not data['notes'] else 'No notes match these filters.',
         'FILTERS': ''.join(f'<button type="button" data-filter="{c}" aria-pressed="false">{c.title()} <span>{sum(n["category"] == c for n in data["notes"])}</span></button>' for c in CATEGORIES),
         'HASH': data['source_sha256'][:12],
     }
@@ -162,7 +263,7 @@ def main():
         parser.error(str(error))
     now = datetime.now().astimezone()
     review_id = now.strftime('%Y%m%dT%H%M%S') + '-' + uuid.uuid4().hex[:10]
-    data.update(schema_version=1, review_id=review_id, created_at=now.isoformat(), source_sha256=hashlib.sha256(raw).hexdigest(), source_filename=args.draft.name, skill_version=VERSION)
+    data.update(schema_version=2, review_id=review_id, created_at=now.isoformat(), source_sha256=hashlib.sha256(raw).hexdigest(), source_filename=args.draft.name, skill_version=VERSION)
     rendered = page(data, draft)
     target = root / (review_id + '-' + data['essay_id'][:80])
     staging = Path(tempfile.mkdtemp(prefix='.pending-', dir=root))
