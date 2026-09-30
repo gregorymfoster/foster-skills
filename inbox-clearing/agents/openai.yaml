@@ -1,0 +1,4 @@
+interface:
+  display_name: "Inbox Clearing"
+  short_description: "Clear email with verified actions and dated holds"
+  default_prompt: "Use $inbox-clearing to work through my inbox until every thread is actioned, archived, responded to, or held appropriately."
