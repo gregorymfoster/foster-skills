@@ -20,3 +20,11 @@ ln -s "$(pwd)/research-paper" ~/.cursor/skills/research-paper
   while the agent keeps working.
 
 For Codex, symlink the desired skill directory into `~/.codex/skills/`.
+
+## Tests
+
+There is no CI. Run every skill's tests locally before pushing:
+
+```bash
+for d in */scripts; do python3 -m unittest discover -s "$d" -p 'test_*.py' || exit 1; done
+```

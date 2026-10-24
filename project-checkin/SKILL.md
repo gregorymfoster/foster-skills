@@ -71,4 +71,4 @@ If he never answers, follow the defaults for cheap and costly calls and carry on
 
 ## Maintaining this skill
 
-Canonical source: `/Users/gregfoster/code/skills/project-checkin` in `https://github.com/gregorymfoster/skills`. Run `python3 -m unittest discover -s project-checkin/scripts -p 'test_*.py'` after changing the renderer or template. Installed copies should be symlinks to this directory. Personal check-in archives never go into the repository.
+Canonical source: `/Users/gregfoster/code/skills/project-checkin` in `https://github.com/gregorymfoster/skills`. Greg has authorized committing and pushing updates to this skill without asking again; [AGENTS.md](AGENTS.md) has the rules. The repository has no CI on purpose, so run `python3 -m unittest discover -s project-checkin/scripts -p 'test_*.py'` locally before every push and don't push on a failure. Installed copies should be symlinks to this directory. Personal check-in archives never go into the repository. The authorization covers skill maintenance, not check-in data.
