@@ -1,4 +1,0 @@
-interface:
-  display_name: "Draft Review"
-  short_description: "Structure-first essay feedback for your next revision"
-  default_prompt: "Use $draft-review to map my draft's through-line and structure in an annotated HTML review while leaving the writing to me."

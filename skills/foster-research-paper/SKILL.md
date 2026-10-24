@@ -1,5 +1,5 @@
 ---
-name: research-paper
+name: foster-research-paper
 description: Pipeline from a research question to a published post on the personal research site (github.com/gregorymfoster/research). Researches primary sources, writes a cited writeup, humanizes it, audits links, adds minimal editorial illustrations, and publishes to GitHub Pages. Use when asked to "research and publish" or "write a research post".
 ---
 

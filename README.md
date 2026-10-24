@@ -4,11 +4,11 @@ Personal agent skills, one directory per skill under `skills/`. The repository i
 
 ## Skills
 
-- `research-paper`: pipeline from a research question to a published,
+- `foster-research-paper`: pipeline from a research question to a published,
   illustrated post on the personal research site.
-- `draft-review`: annotated HTML feedback on personal drafts, with the source
+- `foster-draft-review`: annotated HTML feedback on personal drafts, with the source
   left untouched and reviews archived locally for later comparison.
-- `project-checkin`: a five-minute slide briefing on an AI-run project, with
+- `foster-project-checkin`: a five-minute slide briefing on an AI-run project, with
   status slides and decision slides interleaved so you can make the calls
   while the agent keeps working.
 
@@ -42,7 +42,7 @@ ln -s "$(pwd)" ~/.cursor/plugins/local/greg-skills
 Then run **Developer: Reload Window**. You can also symlink one skill at a time into `~/.cursor/skills/` or `~/.codex/skills/`:
 
 ```bash
-ln -s "$(pwd)/skills/research-paper" ~/.cursor/skills/research-paper
+ln -s "$(pwd)/skills/foster-research-paper" ~/.cursor/skills/foster-research-paper
 ```
 
 **claude.ai**

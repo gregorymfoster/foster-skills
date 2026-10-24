@@ -1,4 +1,0 @@
-interface:
-  display_name: "Project Check-in"
-  short_description: "Five-minute status deck with your calls mixed in"
-  default_prompt: "Use $project-checkin to brief me like a director of engineering on what has happened in this project, then give me the calls I should make while you keep working."

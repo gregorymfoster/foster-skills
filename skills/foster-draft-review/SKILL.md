@@ -1,5 +1,5 @@
 ---
-name: draft-review
+name: foster-draft-review
 description: Review an essay or personal-writing draft with a structure-first HTML map of its through-line, paragraph jobs, and revision choices. Use for editorial feedback the writer takes back to iA Writer or another editor; preserve the draft and leave revision to the writer. Give detailed argument or sentence feedback only when requested.
 ---
 
@@ -55,4 +55,4 @@ When asked for trends, analyze archived feedback by craft tag and essay/version.
 
 ## Maintaining this skill
 
-Canonical source: `/Users/gregfoster/code/skills/skills/draft-review` in `https://github.com/gregorymfoster/skills`. Greg has authorized committing and pushing updates to this skill without asking again. Edit the canonical source, validate changed behavior, commit only the intended skill/repository-documentation changes, rebase on the remote as needed, and push. Preserve unrelated work; never force-push. If access or an unsafe conflict blocks publication, report the blocker rather than claim success. Keep installed copies linked to this source. This authorization covers skill maintenance, not uploading personal drafts or feedback.
+Canonical source: `/Users/gregfoster/code/skills/skills/foster-draft-review` in `https://github.com/gregorymfoster/skills`. Greg has authorized committing and pushing updates to this skill without asking again. Edit the canonical source, validate changed behavior, commit only the intended skill/repository-documentation changes, rebase on the remote as needed, and push. Preserve unrelated work; never force-push. If access or an unsafe conflict blocks publication, report the blocker rather than claim success. Keep installed copies linked to this source. This authorization covers skill maintenance, not uploading personal drafts or feedback.

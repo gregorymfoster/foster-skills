@@ -5,7 +5,7 @@ Greg explicitly authorized automatic commit and push whenever this skill is upda
 Before every push, run the tests locally. There is no CI on this repository by design:
 
 ```sh
-python3 -m unittest discover -s skills/project-checkin/scripts -p 'test_*.py'
+python3 -m unittest discover -s skills/foster-project-checkin/scripts -p 'test_*.py'
 ```
 
-The canonical directory is `/Users/gregfoster/code/skills/skills/project-checkin`. Installed locations should be symlinks to it. Check-in archives belong outside this repository.
+The canonical directory is `/Users/gregfoster/code/skills/skills/foster-project-checkin`. Installed locations should be symlinks to it. Check-in archives belong outside this repository.
