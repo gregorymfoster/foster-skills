@@ -1,0 +1,17 @@
+{
+  "name": "gregorymfoster-skills",
+  "owner": {
+    "name": "Greg Foster"
+  },
+  "metadata": {
+    "description": "Personal agent skills: research posts, structure-first draft reviews, and five-minute project check-ins."
+  },
+  "plugins": [
+    {
+      "name": "greg-skills",
+      "description": "Personal agent skills: research posts, structure-first draft reviews, and five-minute project check-ins.",
+      "version": "1.0.0",
+      "source": "."
+    }
+  ]
+}
