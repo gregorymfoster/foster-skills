@@ -306,8 +306,14 @@ def page(data):
 
 
 def latest(root, project_id):
-    decks = sorted((root / project_id).glob('*/deck.json'))
-    return decks[-1] if decks else None
+    decks = []
+    for file in (root / project_id).glob('*/deck.json'):
+        try:
+            decks.append((json.loads(file.read_text(encoding='utf-8'))['created_at'], file))
+        except (ValueError, KeyError, OSError):
+            continue
+    # Folder names only resolve to the second, so order by the full timestamp.
+    return max(decks)[1] if decks else None
 
 
 def main():
