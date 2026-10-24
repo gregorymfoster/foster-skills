@@ -15,5 +15,8 @@ ln -s "$(pwd)/research-paper" ~/.cursor/skills/research-paper
   illustrated post on the personal research site.
 - `draft-review` — annotated HTML feedback on personal drafts, with the source
   left untouched and reviews archived locally for later comparison.
+- `project-checkin`: a five-minute slide briefing on an AI-run project, with
+  status slides and decision slides interleaved so you can make the calls
+  while the agent keeps working.
 
 For Codex, symlink the desired skill directory into `~/.codex/skills/`.
