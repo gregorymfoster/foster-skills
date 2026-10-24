@@ -31,9 +31,9 @@ def deck():
 
 
 class DeckTests(unittest.TestCase):
-    def test_valid_deck_passes_without_warnings(self):
+    def test_valid_deck_passes_without_errors(self):
         data, warnings = r.validate(deck())
-        self.assertEqual(warnings, [])
+        self.assertFalse(any('decision' in w or 'visual slide' in w for w in warnings))
         self.assertEqual(data['seconds'], 20 + 35 + 50 + 35 + 50 + 25)
 
     def test_decisions_must_be_interleaved(self):
@@ -110,6 +110,44 @@ class DeckTests(unittest.TestCase):
             data['slides'][2]['visual'] = dict(type='image', src='missing.png', alt='x')
             with self.assertRaisesRegex(ValueError, 'not found'):
                 r.validate(data, Path(tmp))
+
+    def test_gallery_bars_and_cover_render(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in ('a.png', 'b.png'):
+                (Path(tmp) / name).write_bytes(PNG)
+            data = deck()
+            data['what_it_is'] = 'A search box for the whole catalog.'
+            data['hero'] = dict(src='a.png', alt='Search page')
+            data['slides'][0]['visual'] = dict(type='bars', question='Seconds to find a product', bars=[dict(label='Old page', value=40), dict(label='Search', value=6, highlight=True)])
+            data['slides'][0]['why'] = 'Staff stop asking engineers to look things up.'
+            data['slides'][2] = dict(kind='visual', title='Results got clearer', lede='Before and after.', why='Fewer wrong clicks.', evidence=[dict(label='PR 41')], visual=dict(type='gallery', images=[dict(src='a.png', alt='Old', label='Before'), dict(src='b.png', alt='New', label='After')]))
+            data, warnings = r.validate(data, Path(tmp))
+            self.assertEqual(warnings, [])
+            data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
+            page = r.page(data)
+            self.assertIn('class="gallery"', page)
+            self.assertIn('width:15.0%', page)
+            self.assertIn('Why it matters', page)
+            self.assertIn('A search box for the whole catalog.', page)
+            self.assertIn('<details class="evidence">', page)
+            bad = deck()
+            bad['slides'][2]['visual'] = dict(type='gallery', images=[dict(src='a.png', alt='x', label='Only one')])
+            with self.assertRaisesRegex(ValueError, '2 or 3'):
+                r.validate(bad, Path(tmp))
+            bad['slides'][2]['visual'] = dict(type='bars', question='q', bars=[dict(label='a', value=0), dict(label='b', value=0)])
+            with self.assertRaisesRegex(ValueError, 'above zero'):
+                r.validate(bad, Path(tmp))
+
+    def test_insider_shorthand_and_missing_pictures_warn(self):
+        data = deck()
+        data['headline'] = 'Shipped 3d205ec with the new cull_rules in engine/src/cull.rs.'
+        _, warnings = r.validate(data)
+        self.assertTrue(any('commit hash' in w for w in warnings))
+        data = deck()
+        data['slides'] = [status('a'), decision('x'), status('b'), decision('y')]
+        _, warnings = r.validate(data)
+        self.assertTrue(any('have a picture' in w for w in warnings))
+        self.assertTrue(any('why it matters' in w for w in warnings))
 
     def test_cli_archives_each_deck_and_finds_latest(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -7,7 +7,9 @@ The renderer takes one JSON object and produces a single offline HTML deck. It a
   "project": "Search service",
   "project_id": "search-service",
   "window": "Since Oct 17 (last check-in)",
-  "headline": "Staff can search the whole catalog now, but ranking is still naive and two clients are hitting the old endpoint.",
+  "what_it_is": "A search box that lets staff find any product in the catalog.",
+  "headline": "Staff can search the whole catalog now, but results are still sorted by date and two old apps still use the old search.",
+  "hero": {"src": "screens/search.png", "alt": "The new search page", "caption": "The staging build."},
   "metrics": [
     {"value": "14", "label": "PRs merged"},
     {"value": "180 ms", "label": "p95 query time"}
@@ -24,7 +26,10 @@ The renderer takes one JSON object and produces a single offline HTML deck. It a
         {"text": "Typo tolerance", "state": "moving"},
         {"text": "Faceted filters", "state": "dropped"}
       ],
+      "visual": {"type": "bars", "question": "Seconds for staff to find a product", "unit": "s", "bars": [{"label": "Old catalog page", "value": 40}, {"label": "New search", "value": 6, "highlight": true}]},
+      "why": "Support stops asking engineers to look products up.",
       "say": "One to three sentences, the way you would say it out loud.",
+      "evidence": [{"label": "PR #41", "url": "https://github.com/org/repo/pull/41"}],
       "seconds": 35
     },
     {
@@ -50,7 +55,8 @@ The renderer takes one JSON object and produces a single offline HTML deck. It a
       "kind": "visual",
       "title": "What a staff search looks like today",
       "lede": "Results are correct but sorted by date, not relevance.",
-      "visual": {"type": "image", "src": "screens/results.png", "alt": "Search results page showing 20 results sorted by date", "caption": "Captured from the staging build."}
+      "visual": {"type": "gallery", "images": [{"src": "screens/before.png", "alt": "Old results page", "label": "Before"}, {"src": "screens/after.png", "alt": "New results page", "label": "After"}], "caption": "The same query, Oct 10 and today."},
+      "why": "Staff find the right product on the first screen."
     }
   ],
   "next": ["Typo tolerance behind a flag", "Move the two old clients"]
@@ -59,21 +65,23 @@ The renderer takes one JSON object and produces a single offline HTML deck. It a
 
 ## Top level
 
-`project` is the display name. `project_id` is a stable kebab-case slug; the archive groups decks by it, and `--latest <project_id>` finds the previous check-in. `window` names the period covered in words. `headline` is the net effect in one sentence of 180 characters or fewer, and it sits alone on the cover. `metrics` is optional, at most four, and every number in it must come from a source you checked. `gaps` lists sources you could not read so the director knows what the briefing is blind to. `next` is required: what you keep working on while the calls are open.
+`project` is the display name. `what_it_is` is optional but strongly encouraged: one plain sentence (240 characters or fewer) on what the project is and who it's for, shown above the headline, for a director who has forgotten or never knew. `hero` is an optional image (`src`, `alt`, `caption`) shown on the cover. `project_id` is a stable kebab-case slug; the archive groups decks by it, and `--latest <project_id>` finds the previous check-in. `window` names the period covered in words. `headline` is the net effect in one plain sentence of 180 characters or fewer. `metrics` is optional, at most four, and every number in it must come from a source you checked. `gaps` lists sources you could not read so the director knows what the briefing is blind to. `next` is required: what you keep working on while the calls are open.
 
 ## Slides
 
 There are three kinds. Every slide takes an optional `say` (the voiceover line, shown under the slide and toggled with V) and an optional `seconds` (defaults: status 35, visual 35, decision 50). The cover adds 20 seconds and the close adds 25.
 
-A **status** slide needs `title` and `lede`, and takes up to five `points`. A point has `text`, an optional `url`, and a `state` of `done`, `moving`, `blocked`, `dropped`, or `risk`. Write the title as a claim ("Search is live for internal users"), not a topic ("Search update"). The lede is the so-what.
+Every information slide (status or visual) also takes `why`, one sentence on why it matters to the user or the goal, shown under the content, and `evidence`, a list of `label` with optional `url`, shown as a collapsed Sources list. Put commit hashes, file paths, branch names and metric names there, not in the slide text.
 
-A **visual** slide needs `title`, `lede`, and a `visual` of one of four types. `image` takes `src` and `alt`; a local path (relative to the deck JSON) is inlined as base64 so the deck stays one file, and `https://` and `data:image/` sources pass through. SVG diagrams go here too, as image files, so nothing in them can run. `flow` takes two to six `steps`, each with `label`, optional `detail`, and a `state`; use it for a pipeline, an architecture path, or a rollout sequence. `compare` takes `before` and `after`, each with `label` and `text`. `code` takes `text` of at most 18 lines for real output: a CLI run, an API response, a log line. Every type takes an optional `caption`.
+A **status** slide needs `title` and `lede`, takes up to five `points`, and takes an optional `visual` of any type, shown beside the points. A point has `text`, an optional `url`, and a `state` of `done`, `moving`, `blocked`, `dropped`, or `risk`. Write the title as a claim ("Search is live for internal users"), not a topic ("Search update"). The lede is the so-what.
+
+A **visual** slide needs `title`, `lede`, and a `visual` of one of six types. `gallery` takes two or three `images`, each with `src`, `alt` and a short `label` ("Before", "After", "Your own edit"); it is the best way to show anything that changes what a user sees. `bars` takes a plain-language `question`, an optional `unit`, and two to six `bars`, each with `label`, a numeric `value`, and optional `highlight`; use it for one comparison that matters (old way, new way, best possible). `image` takes `src` and `alt`; a local path (relative to the deck JSON) is inlined as base64 so the deck stays one file, and `https://` and `data:image/` sources pass through. SVG diagrams go here too, as image files, so nothing in them can run. `flow` takes two to six `steps`, each with `label`, optional `detail`, and a `state`; use it for a pipeline, an architecture path, or a rollout sequence. `compare` takes `before` and `after`, each with `label` and `text`. `code` takes `text` of at most 18 lines for real output: a CLI run, an API response, a log line. Every type takes an optional `caption`.
 
 A **decision** slide needs `id` (unique, lowercase), `timing` (`made` or `upcoming`), `question`, `context`, two to four `options` (each with `label` and `consequence`), `recommended` (the zero-based index of your pick), `recommendation` (why, in a sentence), `default` (what you do if the director never answers), and `reversibility` (`cheap`, `costly`, or `one-way`). A `made` decision also needs `current`, the index of the option in effect now; an `upcoming` one must not have it. Optional fields are `reversibility_note`, `needed_by`, and `evidence` (a list of `label` with optional `url`).
 
 ## Rules the renderer enforces
 
-The deck holds 3 to 10 content slides. The first decision appears within the first three, and no more than two information slides run in a row. There are one to five decisions in total. The estimated runtime must stay at or under 420 seconds; past 330 it warns. It warns, without failing, when there is no `made` decision, no `upcoming` decision, or no visual slide, because sometimes the evidence has none and inventing one is worse. Links must be http(s). The archive must sit outside any Git repository.
+The deck holds 3 to 10 content slides. The first decision appears within the first three, and no more than two information slides run in a row. There are one to five decisions in total. The estimated runtime must stay at or under 420 seconds; past 330 it warns. It warns, without failing, when there is no `made` decision, no `upcoming` decision, or no visual slide, because sometimes the evidence has none and inventing one is worse. It also warns when fewer than half the information slides carry a picture, when an information slide has no `why`, and when text the director reads holds insider shorthand: a commit hash, code in backticks, a file path, or a snake_case identifier. Links must be http(s). The archive must sit outside any Git repository.
 
 ## Archive layout
 

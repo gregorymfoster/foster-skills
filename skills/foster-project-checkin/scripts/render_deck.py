@@ -12,18 +12,25 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 KINDS = ('status', 'visual', 'decision')
 TIMINGS = ('made', 'upcoming')
 REVERSIBILITY = ('cheap', 'costly', 'one-way')
 STATES = ('done', 'moving', 'blocked', 'dropped', 'risk')
-VISUALS = ('image', 'flow', 'compare', 'code')
+VISUALS = ('image', 'gallery', 'bars', 'flow', 'compare', 'code')
 SECONDS = {'cover': 20, 'status': 35, 'visual': 35, 'decision': 50, 'close': 25}
 SOFT_LIMIT = 330
 HARD_LIMIT = 420
 MAX_INFO_RUN = 2
 IMAGE_TYPES = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml'}
 SLUG = r'[a-z0-9]+(?:-[a-z0-9]+)*'
+# Insider shorthand that a director without the context would have to ask about. Warn, don't fail.
+JARGON = [
+    (re.compile(r'\b(?=[0-9a-f]*[a-f])(?=[0-9a-f]*[0-9])[0-9a-f]{7,40}\b'), 'a commit hash'),
+    (re.compile(r'`[^`]+`'), 'code in backticks'),
+    (re.compile(r'(?<![\w/:.])(?:[\w.-]+/)+[\w.-]+\.\w{1,5}\b'), 'a file path'),
+    (re.compile(r'\b[a-z]+(?:_[a-z0-9]+)+\b'), 'a code identifier'),
+]
 
 
 def esc(value):
@@ -71,6 +78,30 @@ def validate_visual(visual, label, base):
     if kind == 'image':
         visual['src'] = inline_image(text(visual, 'src', label), base)
         text(visual, 'alt', label)
+    elif kind == 'gallery':
+        images = visual.get('images')
+        if not isinstance(images, list) or not 2 <= len(images) <= 3:
+            raise ValueError(f'{label} gallery needs 2 or 3 images, for example before and after.')
+        for image in images:
+            if not isinstance(image, dict):
+                raise ValueError(f'{label} gallery images must be objects.')
+            image['src'] = inline_image(text(image, 'src', f'{label} gallery image'), base)
+            text(image, 'alt', f'{label} gallery image')
+            text(image, 'label', f'{label} gallery image')
+    elif kind == 'bars':
+        text(visual, 'question', label)
+        text(visual, 'unit', label, required=False)
+        bars = visual.get('bars')
+        if not isinstance(bars, list) or not 2 <= len(bars) <= 6:
+            raise ValueError(f'{label} bars needs 2 to 6 bars.')
+        for bar in bars:
+            if not isinstance(bar, dict):
+                raise ValueError(f'{label} bars must be objects.')
+            text(bar, 'label', f'{label} bar')
+            if type(bar.get('value')) not in (int, float) or bar['value'] < 0:
+                raise ValueError(f'{label} bar value must be a number of zero or more.')
+        if not any(b['value'] > 0 for b in bars):
+            raise ValueError(f'{label} bars need at least one value above zero.')
     elif kind == 'flow':
         steps = visual.get('steps')
         if not isinstance(steps, list) or not 2 <= len(steps) <= 6:
@@ -102,6 +133,15 @@ def validate(data, base=Path('.')):
         text(data, field, 'Deck')
     if len(data['headline']) > 180:
         raise ValueError('headline must fit on a cover slide; keep it under 180 characters.')
+    text(data, 'what_it_is', 'Deck', required=False)
+    if len(data.get('what_it_is', '')) > 240:
+        raise ValueError('what_it_is is one sentence on what the project is; keep it under 240 characters.')
+    if data.get('hero') is not None:
+        hero = data['hero']
+        if not isinstance(hero, dict) or hero.get('type', 'image') != 'image':
+            raise ValueError('hero must be an image visual.')
+        hero['type'] = 'image'
+        validate_visual(hero, 'Cover hero', base)
     if not re.fullmatch(SLUG, data['project_id']):
         raise ValueError('project_id must be a lowercase kebab-case slug.')
     for field in ('gaps', 'next'):
@@ -144,6 +184,8 @@ def validate(data, base=Path('.')):
         text(slide, 'title', label)
         text(slide, 'lede', label)
         text(slide, 'body', label, required=False)
+        text(slide, 'why', label, required=False)
+        check_links(slide.get('evidence', []), label)
         if kind == 'status':
             points = slide.get('points', [])
             if not isinstance(points, list) or len(points) > 5:
@@ -156,6 +198,8 @@ def validate(data, base=Path('.')):
                     raise ValueError(f'{label} point state must be one of {STATES}.')
                 if point.get('url'):
                     check_url(point['url'], label)
+            if slide.get('visual') is not None:
+                validate_visual(slide['visual'], label, base)
         else:
             validate_visual(slide.get('visual'), label, base)
     if first_decision is None:
@@ -174,8 +218,35 @@ def validate(data, base=Path('.')):
             warnings.append(f'No {timing} decision. Fine if the evidence has none; do not invent one.')
     if not any(s['kind'] == 'visual' for s in slides):
         warnings.append('No visual slide shows what the work looks like.')
+    info = [s for s in slides if s['kind'] != 'decision']
+    pictured = sum(1 for s in info if s.get('visual'))
+    if info and pictured * 2 < len(info):
+        warnings.append(f'Only {pictured} of {len(info)} information slides have a picture. Show features with screenshots, before-and-afters or a chart.')
+    without_why = [i for i, s in enumerate(slides, 1) if s['kind'] != 'decision' and not s.get('why')]
+    if without_why:
+        warnings.append('Slides ' + ', '.join(map(str, without_why)) + ' do not say why it matters (add why).')
+    warnings.extend(plain_language(data))
     data['seconds'] = total
     return data, warnings
+
+
+def plain_language(data):
+    """Warn about insider shorthand on anything the director reads. Evidence and captions are exempt."""
+    found = []
+    fields = [('Cover', data.get('headline', '')), ('Cover', data.get('what_it_is', ''))]
+    for number, slide in enumerate(data['slides'], 1):
+        label = f'Slide {number}'
+        for field in ('title', 'lede', 'body', 'why', 'say', 'question', 'context', 'recommendation', 'default'):
+            fields.append((label, slide.get(field, '')))
+        fields += [(label, p['text']) for p in slide.get('points', [])]
+        fields += [(label, o['label'] + ' ' + o['consequence']) for o in slide.get('options', [])]
+    for label, value in fields:
+        for pattern, kind in JARGON:
+            match = pattern.search(value or '')
+            if match:
+                found.append(f'{label} has {kind} ("{match.group(0)}"). Say it plainly, or move it to evidence.')
+                break
+    return found
 
 
 def validate_decision(slide, label, ids):
@@ -221,6 +292,13 @@ def link(label, url):
 def render_visual(v):
     if v['type'] == 'image':
         body = f'<img src="{esc(v["src"])}" alt="{esc(v["alt"])}">'
+    elif v['type'] == 'gallery':
+        body = f'<div class="gallery" style="--n:{len(v["images"])}">' + ''.join(f'<figure><img src="{esc(i["src"])}" alt="{esc(i["alt"])}"><b>{esc(i["label"])}</b></figure>' for i in v['images']) + '</div>'
+    elif v['type'] == 'bars':
+        top = max(b['value'] for b in v['bars'])
+        unit = f' {esc(v["unit"])}' if v.get('unit') else ''
+        rows = ''.join(f'<div class="row{" hi" if b.get("highlight") else ""}"><span>{esc(b["label"])}</span><span class="track2"><span class="fill" style="width:{b["value"] / top * 100:.1f}%"></span></span><b>{esc(format(b["value"], "g"))}{unit}</b></div>' for b in v['bars'])
+        body = f'<div class="bars"><p class="question">{esc(v["question"])}</p>{rows}</div>'
     elif v['type'] == 'flow':
         body = '<ol class="flow">' + ''.join(f'<li class="state-{esc(s.get("state", "done"))}"><strong>{esc(s["label"])}</strong><span>{esc(s.get("detail", ""))}</span></li>' for s in v['steps']) + '</ol>'
     elif v['type'] == 'compare':
@@ -237,10 +315,15 @@ def render_info(slide, number):
     extra = ''
     if slide['kind'] == 'status' and slide.get('points'):
         extra = '<ul class="points">' + ''.join(f'<li class="state-{esc(p.get("state", "done"))}"><i>{esc(p.get("state", "done"))}</i><span>{link(p["text"], p.get("url"))}</span></li>' for p in slide['points']) + '</ul>'
-    if slide['kind'] == 'visual':
-        extra = render_visual(slide['visual'])
+    if slide.get('visual'):
+        figure = render_visual(slide['visual'])
+        # A status picture sits beside its points so the slide fits without scrolling.
+        extra = f'<div class="split">{extra}{figure}</div>' if extra else figure
+    why = f'<p class="why"><b>Why it matters</b>{esc(slide["why"])}</p>' if slide.get('why') else ''
+    evidence = slide.get('evidence', [])
+    sources = '<details class="evidence"><summary>Sources</summary>' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</details>' if evidence else ''
     return f'''<section class="slide info {slide['kind']}" data-kind="{slide['kind']}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
-<div class="eyebrow">{eyebrow}</div><h2>{esc(slide['title'])}</h2><p class="lede">{esc(slide['lede'])}</p>{body}{extra}{say(slide)}</section>'''
+<div class="eyebrow">{eyebrow}</div><h2>{esc(slide['title'])}</h2><p class="lede">{esc(slide['lede'])}</p>{body}{extra}{why}{sources}{say(slide)}</section>'''
 
 
 def render_decision(slide, number, index):
@@ -272,8 +355,10 @@ def render_slides(data):
     gaps = f'<p class="gaps">Not checked: {esc("; ".join(data["gaps"]))}</p>' if data.get('gaps') else ''
     made = sum(s['timing'] == 'made' for s in decisions)
     count = f'{len(decisions)} call{"s" if len(decisions) != 1 else ""} for you' + (f', {made} of them about reversing something already in place' if made else '')
-    parts = [f'''<section class="slide cover" data-kind="cover" data-seconds="{SECONDS['cover']}" aria-label="Slide 1">
-<div class="eyebrow">Check-in · {esc(data['project'])} · {esc(data['window'])}</div><h1>{esc(data['headline'])}</h1>
+    what = f'<p class="what">{esc(data["what_it_is"])}</p>' if data.get('what_it_is') else ''
+    hero = render_visual(data['hero']).replace('class="figure', 'class="hero figure', 1) if data.get('hero') else ''
+    parts = [f'''<section class="slide cover{' has-hero' if hero else ''}" data-kind="cover" data-seconds="{SECONDS['cover']}" aria-label="Slide 1">
+<div class="eyebrow">Check-in · {esc(data['project'])} · {esc(data['window'])}</div>{what}<h1>{esc(data['headline'])}</h1>{hero}
 <div class="metrics">{metrics}</div><p class="count">{count}. About {round(data['seconds'] / 60)} minutes. Arrow keys or swipe to move; pick an option on any call slide.</p>{gaps}</section>''']
     number, call = 1, 0
     for slide in data['slides']:

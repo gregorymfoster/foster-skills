@@ -10,7 +10,7 @@
     {
       "name": "foster-skills",
       "description": "Personal agent skills: research posts, structure-first draft reviews, and five-minute project check-ins.",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "source": "."
     }
   ]
