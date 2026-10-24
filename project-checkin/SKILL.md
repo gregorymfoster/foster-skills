@@ -19,6 +19,9 @@ Gathering is read-only. Do not push, merge, comment, post, or message anyone in 
 
 ## Step 1: Gather
 
+The renderer and template live next to this file in `scripts/` and `assets/`. If they are missing (for example, when the skill was installed from its instructions alone), get them with `git clone --depth 1 https://github.com/gregorymfoster/skills` into a temporary folder and use `skills/project-checkin` as `<skill-directory>`.
+
+
 Set the window first. Run `python3 <skill-directory>/scripts/render_deck.py --latest <project-id> --archive <archive>` to find the previous check-in. If one exists, the window starts there, and its `deck.json` and `calls.md` tell you what he decided last time. If none exists, use the last seven days, or the whole project if it is younger.
 
 Then read whatever this environment has, quickly. Spend a few minutes of tool calls, not an afternoon. Skip what is unreachable and list it in `gaps`.
