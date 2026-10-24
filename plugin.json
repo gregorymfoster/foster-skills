@@ -1,14 +1,14 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "greg-skills",
-  "displayName": "Greg's Skills",
-  "version": "1.1.0",
+  "name": "foster-skills",
+  "displayName": "Foster Skills",
+  "version": "2.0.0",
   "description": "Personal agent skills: research posts, structure-first draft reviews, and five-minute project check-ins.",
   "author": {
     "name": "Greg Foster"
   },
-  "homepage": "https://github.com/gregorymfoster/skills",
-  "repository": "https://github.com/gregorymfoster/skills",
+  "homepage": "https://github.com/gregorymfoster/foster-skills",
+  "repository": "https://github.com/gregorymfoster/foster-skills",
   "keywords": [
     "skills",
     "writing",

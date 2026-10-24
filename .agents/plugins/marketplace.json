@@ -1,11 +1,11 @@
 {
-  "name": "gregorymfoster-skills",
+  "name": "foster-skills",
   "interface": {
-    "displayName": "Greg's Skills"
+    "displayName": "Foster Skills"
   },
   "plugins": [
     {
-      "name": "greg-skills",
+      "name": "foster-skills",
       "source": {
         "source": "local",
         "path": "./"

@@ -10,6 +10,8 @@ done criterion. The lead agent owns the argument, prose, and published result.
 It delegates the two phases marked below to subagents and inspects what they
 return rather than trusting their confidence.
 
+The style, humanize, and illustration guides in `references/` live next to this file. If they are missing (for example, when the skill was installed from its instructions alone), get them with `git clone --depth 1 https://github.com/gregorymfoster/foster-skills` into a temporary folder and read them from `foster-skills/skills/foster-research-paper/`.
+
 ## Step 1: Research (subagent)
 
 - Fix the bounded question in one sentence, then dispatch one background

@@ -19,7 +19,7 @@ Gathering is read-only. Do not push, merge, comment, post, or message anyone in 
 
 ## Step 1: Gather
 
-The renderer, template, and deck data guide live next to this file in `scripts/`, `assets/`, and `references/`. If they are missing (for example, when the skill was installed from its instructions alone), get them with `git clone --depth 1 https://github.com/gregorymfoster/skills` into a temporary folder and use `skills/skills/foster-project-checkin` as `<skill-directory>`.
+The renderer, template, and deck data guide live next to this file in `scripts/`, `assets/`, and `references/`. If they are missing (for example, when the skill was installed from its instructions alone), get them with `git clone --depth 1 https://github.com/gregorymfoster/foster-skills` into a temporary folder and use `foster-skills/skills/foster-project-checkin` as `<skill-directory>`.
 
 Set the window first. Run `python3 <skill-directory>/scripts/render_deck.py --latest <project-id> --archive <archive>` to find the previous check-in. If one exists, the window starts there, and its `deck.json` and `calls.md` tell you what he decided last time. If none exists, use the last seven days, or the whole project if it is younger.
 
@@ -73,4 +73,4 @@ If he never answers, follow the defaults for cheap and costly calls and carry on
 
 ## Maintaining this skill
 
-Canonical source: `/Users/gregfoster/code/skills/skills/foster-project-checkin` in `https://github.com/gregorymfoster/skills`. Greg has authorized committing and pushing updates to this skill without asking again; [AGENTS.md](AGENTS.md) has the rules. The repository has no CI on purpose, so run `python3 -m unittest discover -s skills/foster-project-checkin/scripts -p 'test_*.py'` locally before every push and don't push on a failure. Installed copies should be symlinks to this directory. Personal check-in archives never go into the repository. The authorization covers skill maintenance, not check-in data.
+Canonical source: `/Users/gregfoster/code/skills/skills/foster-project-checkin` in `https://github.com/gregorymfoster/foster-skills`. Greg has authorized committing and pushing updates to this skill without asking again; [AGENTS.md](AGENTS.md) has the rules. The repository has no CI on purpose, so run `python3 -m unittest discover -s skills/foster-project-checkin/scripts -p 'test_*.py'` locally before every push and don't push on a failure. Installed copies should be symlinks to this directory. Personal check-in archives never go into the repository. The authorization covers skill maintenance, not check-in data.

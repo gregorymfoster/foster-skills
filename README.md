@@ -1,4 +1,4 @@
-# skills
+# foster-skills
 
 Personal agent skills, one directory per skill under `skills/`. The repository is also a plugin, so Claude Code, Codex, ChatGPT, and Cursor can each install all of them at once with their scripts included.
 
@@ -17,17 +17,17 @@ Personal agent skills, one directory per skill under `skills/`. The repository i
 **Claude Code**
 
 ```
-/plugin marketplace add gregorymfoster/skills
-/plugin install greg-skills@gregorymfoster-skills
+/plugin marketplace add gregorymfoster/foster-skills
+/plugin install foster-skills@foster-skills
 ```
 
-Pull changes later with `/plugin marketplace update gregorymfoster-skills`.
+Pull changes later with `/plugin marketplace update foster-skills`.
 
 **Codex and ChatGPT**
 
 ```bash
-codex plugin marketplace add gregorymfoster/skills
-codex plugin add greg-skills@gregorymfoster-skills
+codex plugin marketplace add gregorymfoster/foster-skills
+codex plugin add foster-skills@foster-skills
 ```
 
 Once the marketplace is added, the ChatGPT desktop app lists the plugin in its Plugins directory. OpenAI notes that repo marketplaces aren't on every ChatGPT surface yet.
@@ -36,7 +36,7 @@ Once the marketplace is added, the ChatGPT desktop app lists the plugin in its P
 
 ```bash
 mkdir -p ~/.cursor/plugins/local
-ln -s "$(pwd)" ~/.cursor/plugins/local/greg-skills
+ln -s "$(pwd)" ~/.cursor/plugins/local/foster-skills
 ```
 
 Then run **Developer: Reload Window**. You can also symlink one skill at a time into `~/.cursor/skills/` or `~/.codex/skills/`:
