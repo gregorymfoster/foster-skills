@@ -9,3 +9,5 @@ python3 -m unittest discover -s skills/foster-project-checkin/scripts -p 'test_*
 ```
 
 The canonical directory is `/Users/gregfoster/code/skills/skills/foster-project-checkin`. Installed locations should be symlinks to it. Check-in archives belong outside this repository.
+
+After changing the renderer, `assets/components/`, or the sample deck, regenerate the hand-building starter with `python3 skills/foster-project-checkin/scripts/render_deck.py --starter` and commit it. A test fails when it is stale.

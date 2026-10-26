@@ -4,7 +4,6 @@ import argparse
 import base64
 import html
 import json
-import math
 import re
 import shutil
 import sys
@@ -407,71 +406,6 @@ def link(label, url):
     return f'<a href="{esc(url)}" target="_blank" rel="noopener">{esc(label)}</a>' if url else esc(label)
 
 
-def nice_step(span):
-    raw = span / 4 or 1
-    power = 10 ** math.floor(math.log10(raw))
-    return next(m * power for m in (1, 2, 2.5, 5, 10) if m * power >= raw)
-
-
-def fmt(value):
-    return format(round(value, 2), 'g')
-
-
-def render_line(v):
-    """A small inline SVG line chart. Colors come from the stylesheet so it follows light and dark mode."""
-    width, height, left, right, top, bottom = 680, 240, 44, 150, 14, 30
-    values = [x for line in v['series'] for x in line['values'] if x is not None]
-    low, high = min(0, min(values)), max(values)
-    step = nice_step(high - low)
-    low, high = math.floor(low / step) * step, math.ceil(high / step) * step
-    if high == low:
-        high = low + step
-    plot_w, plot_h = width - left - right, height - top - bottom
-    count = len(v['x'])
-    unit = f' {v["unit"]}' if v.get('unit') else ''
-    px = lambda i: left + plot_w * i / (count - 1)
-    py = lambda val: top + plot_h * (1 - (val - low) / (high - low))
-    parts = []
-    tick = low
-    while tick <= high + step / 2:
-        y = py(tick)
-        parts.append(f'<line class="grid" x1="{left}" x2="{left + plot_w}" y1="{y:.1f}" y2="{y:.1f}"/><text class="tick" x="{left - 8}" y="{y + 4:.1f}" text-anchor="end">{esc(fmt(tick))}</text>')
-        tick += step
-    every = max(1, math.ceil(count / 6))
-    for i, label in enumerate(v['x']):
-        if i % every == 0 or i == count - 1:
-            parts.append(f'<text class="tick" x="{px(i):.1f}" y="{height - 8}" text-anchor="middle">{esc(label)}</text>')
-    ends = []
-    for n, line in enumerate(v['series'], 1):
-        segments, current = [], []
-        for i, val in enumerate(line['values']):
-            if val is None:
-                segments, current = segments + [current] if current else segments, []
-            else:
-                current.append(f'{px(i):.1f},{py(val):.1f}')
-        segments += [current] if current else []
-        for seg in segments:
-            if len(seg) > 1:
-                parts.append(f'<polyline class="series s{n}" points="{" ".join(seg)}"/>')
-        for i, val in enumerate(line['values']):
-            if val is not None:
-                parts.append(f'<g class="pt s{n}"><circle class="hit" cx="{px(i):.1f}" cy="{py(val):.1f}" r="11"/><circle class="dot" cx="{px(i):.1f}" cy="{py(val):.1f}" r="4"/><title>{esc(line["label"])}, {esc(v["x"][i])}: {esc(fmt(val))}{esc(unit)}</title></g>')
-        last = max(i for i, val in enumerate(line['values']) if val is not None)
-        ends.append([py(line['values'][last]), n, line, line['values'][last]])
-    # Direct labels at the right edge, nudged apart so they never overlap.
-    ends.sort()
-    for i in range(1, len(ends)):
-        ends[i][0] = max(ends[i][0], ends[i - 1][0] + 30)
-    for y, n, line, val in ends:
-        parts.append(f'<g class="end s{n}"><rect x="{left + plot_w + 10}" y="{y - 11:.1f}" width="10" height="3" rx="1.5"/><text x="{left + plot_w + 26}" y="{y - 5:.1f}">{esc(line["label"])}</text><text class="val" x="{left + plot_w + 26}" y="{y + 11:.1f}">{esc(fmt(val))}{esc(unit)}</text></g>')
-    head = ''.join(f'<th scope="col">{esc(x)}</th>' for x in v['x'])
-    rows = ''.join(f'<tr><th scope="row">{esc(line["label"])}</th>' + ''.join(f'<td>{"" if val is None else esc(fmt(val))}</td>' for val in line['values']) + '</tr>' for line in v['series'])
-    table = f'<div class="sr-only"><table><caption>{esc(v["question"])}{esc(unit and " (" + v["unit"] + ")")}</caption><tr><td></td>{head}</tr>{rows}</table></div>'
-    legend = '<p class="legend">' + ''.join(f'<span class="s{n}"><i></i>{esc(line["label"])}</span>' for n, line in enumerate(v['series'], 1)) + '</p>' if len(v['series']) > 1 else ''
-    svg = f'<svg viewBox="0 0 {width} {height}" role="img" aria-label="{esc(v["question"])}">{"".join(parts)}</svg>'
-    return f'<div class="chart line-chart"><p class="question">{esc(v["question"])}</p>{legend}{svg}{table}</div>'
-
-
 def render_visual(v):
     if v['type'] == 'image':
         body = f'<img src="{esc(v["src"])}" alt="{esc(v["alt"])}">'
@@ -481,7 +415,9 @@ def render_visual(v):
         before, after = v['before'], v['after']
         body = f'''<div class="slider" style="--pos:50%"><img src="{esc(after['src'])}" alt="{esc(after['alt'])}"><div class="slider-before"><img src="{esc(before['src'])}" alt="{esc(before['alt'])}"></div><span class="slider-handle" aria-hidden="true"></span><b class="slider-label before">{esc(before['label'])}</b><b class="slider-label after">{esc(after['label'])}</b><input type="range" min="0" max="100" value="50" aria-label="Drag to compare {esc(before['label'])} with {esc(after['label'])}"></div>'''
     elif v['type'] == 'line':
-        body = render_line(v)
+        # The page script draws the chart from this data, so a hand-built deck needs no coordinate math.
+        chart = {k: v[k] for k in ('question', 'unit', 'x', 'series') if k in v}
+        body = f'<div class="chart line-chart" data-chart="{esc(json.dumps(chart, ensure_ascii=False))}"><p class="question">{esc(v["question"])}</p></div>'
     elif v['type'] == 'stats':
         arrow = {'good': '▲', 'bad': '▼', 'neutral': '●'}
         body = f'<div class="stats" style="--n:{len(v["stats"])}">' + ''.join(f'<div class="stat tone-{esc(st.get("tone", "neutral"))}"><b>{esc(st["value"])}</b><span>{esc(st["label"])}</span>' + (f'<em><i aria-hidden="true">{arrow[st.get("tone", "neutral")]}</i>{esc(st["change"])}</em>' if st.get('change') else '') + '</div>' for st in v['stats']) + '</div>'
@@ -528,12 +464,13 @@ def render_decision(slide, number, index):
         if i == slide['recommended']:
             tags += '<span class="tag rec">My rec</span>'
         cards.append(f'''<button type="button" class="option" data-decision="{esc(slide['id'])}" data-option="{i}" aria-pressed="false"><span class="option-head"><b>{chr(65 + i)}</b>{tags}</span><strong>{esc(option['label'])}</strong><span>{esc(option['consequence'])}</span></button>''')
+    current = f' data-current="{slide["current"]}"' if made else ''
     rev = {'cheap': 'Cheap to change later', 'costly': 'Gets costly to change', 'one-way': 'One-way door'}[slide['reversibility']]
     rev_note = f' {esc(slide["reversibility_note"])}' if slide.get('reversibility_note') else ''
     needed = f'<div><dt>Need it by</dt><dd>{esc(slide["needed_by"])}</dd></div>' if slide.get('needed_by') else ''
     evidence = slide.get('evidence', [])
     sources = '<p class="evidence">Sources: ' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</p>' if evidence else ''
-    return f'''<section class="slide decision {slide['timing']}" data-kind="decision" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
+    return f'''<section class="slide decision {slide['timing']}" data-kind="decision" data-id="{esc(slide['id'])}" data-timing="{slide['timing']}" data-recommended="{slide['recommended']}"{current} data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
 <div class="eyebrow">{eyebrow}</div><h2>{esc(slide['question'])}</h2><p class="lede">{esc(slide['context'])}</p>
 <div class="options" style="--count:{len(slide['options'])}">{''.join(cards)}</div>
 <dl class="terms"><div class="rec-why"><dt>Why I'd pick {chr(65 + slide['recommended'])}</dt><dd>{esc(slide['recommendation'])}</dd></div><div><dt>If you don't weigh in</dt><dd>{esc(slide['default'])}</dd></div><div><dt>{rev}</dt><dd class="rev-{slide['reversibility']}">{rev_note or '&nbsp;'}</dd></div>{needed}</dl>
@@ -548,7 +485,7 @@ def render_question(slide, number, index):
     needed = f'<div><dt>Need it by</dt><dd>{esc(slide["needed_by"])}</dd></div>' if slide.get('needed_by') else ''
     evidence = slide.get('evidence', [])
     sources = '<p class="evidence">Sources: ' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</p>' if evidence else ''
-    return f'''<section class="slide question" data-kind="question" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
+    return f'''<section class="slide question" data-kind="question" data-id="{esc(slide['id'])}" data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
 <div class="eyebrow">Question {index} · Only you know this</div><h2>{esc(slide['question'])}</h2><p class="lede">{esc(slide['context'])}</p>{f'<div class="ask-split">{figure}<div>' if figure else ''}{chips}
 <label class="note-field answer">Your answer <textarea data-note="{esc(slide['id'])}" rows="2" placeholder="A sentence is plenty."></textarea></label>
 <dl class="terms"><div><dt>If you don't answer</dt><dd>{esc(slide['default'])}</dd></div>{needed}</dl>{'</div></div>' if figure else ''}{sources}{say(slide)}</section>'''
@@ -591,13 +528,8 @@ def render_slides(data):
 def page(data):
     assets = Path(__file__).resolve().parent.parent / 'assets'
     template = (assets / 'deck.html').read_text(encoding='utf-8')
-    calls = []
-    for s in data['slides']:
-        if s['kind'] == 'decision':
-            calls.append({'kind': 'decision', 'id': s['id'], 'question': s['question'], 'timing': s['timing'], 'options': [o['label'] for o in s['options']], 'recommended': s['recommended'], 'current': s.get('current'), 'default': s['default']})
-        elif s['kind'] == 'question':
-            calls.append({'kind': 'question', 'id': s['id'], 'question': s['question'], 'options': s.get('suggestions', []), 'default': s['default']})
-    meta = {'deck': data['deck_id'], 'project': data['project'], 'date': data['created_at'][:10], 'calls': calls}
+    # The page script reads each call from the slide markup itself; meta only names the deck.
+    meta = {'deck': data['deck_id'], 'project': data['project'], 'date': data['created_at'][:10]}
     replacements = {
         'TITLE': esc(data['project']),
         'SLIDES': render_slides(data),
@@ -607,6 +539,55 @@ def page(data):
     }
     # One pass, so template-like text inside the deck stays literal.
     return re.sub(r'@@([A-Z]+)@@', lambda m: replacements[m.group(1)], template)
+
+
+STARTER_NOTE = '''<!--
+Starter deck for building a check-in by hand, when the renderer can't run (no Python, or a chat without tools).
+Generated from assets/sample/deck.json by render_deck.py --starter; never edit this file directly.
+
+Copy this whole file and keep the <style> and the page <script> exactly as they are: they are the look.
+Then rewrite the slides inside the main element. Each slide is marked with a COMPONENT comment.
+Delete the ones you don't need, duplicate the ones you do, and change only the words, numbers and images.
+
+- Escape <, > and & in your text. Put pictures in as data: URIs or https links.
+- Decision slides: data-id must be unique, data-recommended and data-current are option positions from 0,
+  data-default is what you do with no answer. Question slides need data-id and data-default.
+- Bars: each fill width is the value divided by the largest value, as a percent.
+- Line charts: edit only the JSON in data-chart (question, unit, x labels, series with one value per label).
+- Set the deck name and date in the meta script near the bottom, and the project name in <title> and the header.
+- Keep the rules in references/deck-data.md: a call within the first three slides, no more than two
+  information slides in a row, about five minutes in total.
+-->'''
+
+
+def starter():
+    """The sample deck, rendered with fixed ids and a COMPONENT comment before each slide, for hand-building."""
+    sample = Path(__file__).resolve().parent.parent / 'assets' / 'sample' / 'deck.json'
+    data, _ = validate(json.loads(sample.read_text(encoding='utf-8')), sample.parent)
+    data.update(deck_id='starter', created_at='2026-01-01T00:00:00')
+    names = ['cover slide (headline, metrics, what it is)']
+    for slide in data['slides']:
+        visual = slide.get('visual', {}).get('type')
+        names.append(f'{slide["kind"]} slide' + (f' with a {visual} visual' if visual else '') + (f' ({slide["timing"]})' if slide['kind'] == 'decision' else ''))
+    names.append('closing recap (leave as is, except the "keep going on" list)')
+    pieces = page(data).replace('<body>', '<body>\n' + STARTER_NOTE, 1).split('<section class="slide ')
+    html_out = pieces[0] + ''.join(f'<!-- COMPONENT: {name} -->\n<section class="slide {rest}' for name, rest in zip(names, pieces[1:]))
+    # The visuals the sample deck doesn't use, kept in an inert <template> so they never show as slides.
+    extras = [
+        dict(type='gallery', images=[dict(src='search-before.svg', alt='Old results', label='Before'), dict(src='search-after.svg', alt='New results', label='After')], caption='Two or three images side by side.'),
+        dict(type='image', src='search-after.svg', alt='The new results page', caption='One screenshot or diagram.'),
+        dict(type='flow', steps=[dict(label='Typed query', detail='Staff search page'), dict(label='Ranking', detail='Best match first', state='done'), dict(label='Filters', detail='Size and color', state='moving')]),
+        dict(type='compare', before=dict(label='Before', text='Newest products first.'), after=dict(label='After', text='Best match first, typos forgiven.')),
+        dict(type='code', text='$ search "blu ceramc mug"\n1. Blue ceramic mug, 12 oz'),
+    ]
+    more = []
+    for visual in extras:
+        validate_visual(visual, 'Starter', sample.parent)
+        slide = dict(kind='visual', title=f'The {visual["type"]} component', lede='The lede says what changed for the user.', why='One sentence on why it matters.', visual=visual, seconds=SECONDS['visual'])
+        more.append(f'<!-- COMPONENT: visual slide with a {visual["type"]} visual -->\n' + render_info(slide, 0))
+    template = '<!-- More components. Copy a section out of this template into the deck to use it. -->\n<template id="more-components">\n' + '\n'.join(more) + '\n</template>\n</main>'
+    head, tail = html_out.rsplit('</main>', 1)
+    return head + template + tail
 
 
 def latest(root, project_id):
@@ -626,7 +607,11 @@ def main():
     parser.add_argument('--archive', type=Path, default=Path.home() / 'Documents' / 'Project Check-ins')
     parser.add_argument('--latest', metavar='PROJECT_ID', help='Print the most recent archived deck.json for a project, then exit.')
     parser.add_argument('--check', action='store_true', help='Validate only; write nothing.')
+    parser.add_argument('--starter', action='store_true', help='Rewrite assets/starter.html from the sample deck, then exit.')
     args = parser.parse_args()
+    if args.starter:
+        (Path(__file__).resolve().parent.parent / 'assets' / 'starter.html').write_text(starter(), encoding='utf-8')
+        return
     root = args.archive.expanduser().resolve()
     if args.latest:
         found = latest(root, args.latest)
@@ -659,7 +644,10 @@ def main():
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise
-    print(json.dumps({'deck': str(target / 'deck.html'), 'data': str(target / 'deck.json'), 'seconds': data['seconds'], 'warnings': warnings}, indent=2))
+    deck = target / 'deck.html'
+    print(json.dumps({'deck': str(deck), 'open': deck.as_uri(), 'data': str(target / 'deck.json'), 'seconds': data['seconds'], 'warnings': warnings}, indent=2))
+    # Hosts without an artifact or page viewer just hand Greg this line.
+    print(f'Open the deck in a browser: {deck.as_uri()}', file=sys.stderr)
 
 
 if __name__ == '__main__':

@@ -1,4 +1,5 @@
 import copy
+import html
 import importlib.util
 import json
 import subprocess
@@ -91,6 +92,7 @@ class DeckTests(unittest.TestCase):
         data = deck()
         data['headline'] = '<script>alert(1)</script> @@SLIDES@@'
         data['slides'][3]['question'] = '</script><img src=x onerror=alert(1)>'
+        data['project'] = '</script><img src=x onerror=alert(1)>'
         data, _ = r.validate(data)
         data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
         page = r.page(data)
@@ -98,7 +100,8 @@ class DeckTests(unittest.TestCase):
         self.assertNotIn('<img src=x', page)
         self.assertIn('@@SLIDES@@', page)
         meta = page.split('<script type="application/json" id="meta">')[1].split('</script>')[0]
-        self.assertEqual(json.loads(meta)['calls'][1]['question'], '</script><img src=x onerror=alert(1)>')
+        self.assertEqual(json.loads(meta)['project'], '</script><img src=x onerror=alert(1)>')
+        self.assertIn('<h2>&lt;/script&gt;&lt;img src=x onerror=alert(1)&gt;</h2>', page)
 
     def test_local_image_is_inlined(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -173,8 +176,10 @@ class DeckTests(unittest.TestCase):
         self.assertIn('Question 1', page)
         self.assertIn('class="chip"', page)
         self.assertIn('1 call and 1 question for you', page)
-        meta = json.loads(page.split('<script type="application/json" id="meta">')[1].split('</script>')[0])
-        self.assertEqual(meta['calls'][0], {'kind': 'question', 'id': 'who', 'question': 'Which store matters most?', 'options': ['North', 'South'], 'default': 'I treat them the same.'})
+        # The page script reads calls from the markup, so the markup must carry them.
+        self.assertIn('data-kind="question" data-id="who" data-default="I treat them the same."', page)
+        self.assertIn('data-kind="decision" data-id="db" data-timing="upcoming" data-recommended="1" data-default="I go with Postgres."', page)
+        self.assertNotIn('calls', page.split('<script type="application/json" id="meta">')[1].split('</script>')[0])
         data = deck()
         data['slides'] = [status('a'), question, status('b')]
         r.validate(data)
@@ -200,10 +205,8 @@ class DeckTests(unittest.TestCase):
             data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
             page = r.page(data)
             self.assertIn('class="stat tone-good"', page)
-            self.assertIn('<svg viewBox', page)
-            self.assertEqual(page.count('<polyline class="series s1"'), 0)  # a gap leaves no segment of two points
-            self.assertEqual(page.count('<polyline class="series s2"'), 1)
-            self.assertIn('<title>New, W3: 6 s</title>', page)
+            chart = html.unescape(page.split('data-chart="')[1].split('"')[0])
+            self.assertEqual(json.loads(chart)['series'][0], {'label': 'New', 'values': [30, None, 6]})
             self.assertIn('class="slider"', page)
             self.assertIn('data:image/png;base64,', page)
             bad = deck()
@@ -228,6 +231,15 @@ class DeckTests(unittest.TestCase):
         self.assertNotIn('@@', page)
 
 
+    def test_starter_deck_matches_the_renderer(self):
+        starter = SCRIPT.parent.parent / 'assets' / 'starter.html'
+        self.assertEqual(starter.read_text(), r.starter(), 'assets/starter.html is stale; run render_deck.py --starter')
+        text = starter.read_text()
+        for kind in r.VISUALS:
+            self.assertIn(f'with a {kind} visual', text)
+        for kind in ('decision slide (made)', 'decision slide (upcoming)', 'question slide'):
+            self.assertIn(kind, text)
+
     def test_cli_archives_each_deck_and_finds_latest(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -239,6 +251,7 @@ class DeckTests(unittest.TestCase):
                 result = subprocess.run([sys.executable, str(SCRIPT), '--deck', str(source), '--archive', str(archive)], text=True, capture_output=True, check=True)
                 outputs.append(json.loads(result.stdout))
             self.assertNotEqual(outputs[0]['deck'], outputs[1]['deck'])
+            self.assertTrue(outputs[1]['open'].startswith('file://'))
             html = Path(outputs[1]['deck']).read_text()
             self.assertIn('Already made, reverse?', html)
             self.assertIn('In effect now', html)

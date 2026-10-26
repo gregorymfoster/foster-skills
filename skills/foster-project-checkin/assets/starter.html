@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Catalog search (sample) check-in</title>
+<style>
+:root{--paper:#f6f4ef;--card:#fffefa;--ink:#24342e;--muted:#5f6f66;--line:#d7dcd3;--accent:#276852;--accent-ink:#fff;--call:#b7791f;--call-soft:#f6ead2;--rec:#e3efe8;--cur:#e8e3f3;--done:#2f7d5b;--moving:#3c6e9e;--blocked:#b4462e;--dropped:#8a8f8c;--risk:#b7791f;--focus:#a34d29;--ask:#3c5f9e;--ask-soft:#e3eaf5;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--good:#2f7d5b;--bad:#b4462e;--shadow:0 1px 2px #0000000d,0 8px 30px #0000000f}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--paper:#161b19;--card:#1f2623;--ink:#e6ebe7;--muted:#9fb0a7;--line:#33403a;--accent:#5cb48f;--accent-ink:#0d1512;--call:#e0a84a;--call-soft:#3a2f1c;--rec:#1f3a2e;--cur:#2e2a3d;--done:#5cb48f;--moving:#7fb0dd;--blocked:#e2836d;--dropped:#8d958f;--risk:#e0a84a;--focus:#f0a070;--ask:#8fb0e6;--ask-soft:#1f2a3d;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--good:#5cb48f;--bad:#e2836d;--shadow:none}}
+:root[data-theme=dark]{--paper:#161b19;--card:#1f2623;--ink:#e6ebe7;--muted:#9fb0a7;--line:#33403a;--accent:#5cb48f;--accent-ink:#0d1512;--call:#e0a84a;--call-soft:#3a2f1c;--rec:#1f3a2e;--cur:#2e2a3d;--done:#5cb48f;--moving:#7fb0dd;--blocked:#e2836d;--dropped:#8d958f;--risk:#e0a84a;--focus:#f0a070;--ask:#8fb0e6;--ask-soft:#1f2a3d;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--good:#5cb48f;--bad:#e2836d;--shadow:none}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;flex-direction:column;overflow:hidden}
+a{color:var(--accent)}button,textarea{font:inherit;color:inherit}button{cursor:pointer;touch-action:manipulation}:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 20px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}.bar b{color:var(--ink)}.bar span{white-space:nowrap}.bar>span:first-child{overflow:hidden;text-overflow:ellipsis;min-width:0}.bar .right{display:flex;gap:14px;align-items:center}.bar button{border:1px solid var(--line);background:transparent;border-radius:6px;padding:3px 9px;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.stage{flex:1;display:grid;place-items:center;padding:18px;min-height:0}
+.slide{display:none;width:min(100%,calc((100vh - 140px) * 16 / 9));aspect-ratio:16/9;max-height:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:clamp(22px,3.6vw,56px) clamp(24px,4.4vw,70px);overflow:auto;flex-direction:column;container-type:inline-size}
+.slide.active{display:flex}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+h1{font:400 clamp(28px,4.4cqi,54px)/1.12 Georgia,"Times New Roman",serif;letter-spacing:-.02em;margin:auto 0 24px;max-width:28ch}
+h2{font:400 clamp(24px,3.6cqi,44px)/1.15 Georgia,"Times New Roman",serif;letter-spacing:-.015em;margin:12px 0 10px;max-width:30ch}
+.lede{font-size:clamp(16px,1.9cqi,22px);max-width:62ch;margin:4px 0 14px}.body{color:var(--muted);max-width:68ch;margin:0 0 12px;font-size:clamp(14px,1.5cqi,17px)}
+.metrics{display:flex;flex-wrap:wrap;gap:12px 40px;margin:0 0 22px}.metric b{display:block;font:400 clamp(26px,4cqi,46px)/1 Georgia,serif;color:var(--accent)}.metric span{font-size:13px;color:var(--muted)}
+.count{margin:0;font-size:15px}.gaps{font-size:12px;color:var(--muted);margin:8px 0 0}
+.points{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:10px;max-width:72ch}.points li{display:flex;gap:14px;align-items:baseline;font-size:clamp(15px,1.7cqi,19px)}.points i{font-style:normal;font-size:10px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;min-width:66px;text-align:center;padding:2px 6px;border-radius:4px;color:var(--card);background:var(--done)}
+.state-moving i,.flow .state-moving{--s:var(--moving)}.state-blocked i,.flow .state-blocked{--s:var(--blocked)}.state-dropped i,.flow .state-dropped{--s:var(--dropped)}.state-risk i,.flow .state-risk{--s:var(--risk)}.points li i{background:var(--s,var(--done))}.state-dropped span{text-decoration:line-through;color:var(--muted)}
+.figure{margin:6px 0 0;flex:1;min-height:0;display:flex;flex-direction:column}.figure img{max-width:100%;max-height:100%;min-height:0;object-fit:contain;border:1px solid var(--line);border-radius:8px;align-self:flex-start}figcaption{font-size:12px;color:var(--muted);margin-top:8px}
+.flow{list-style:none;padding:0;margin:8px 0 0;display:flex;gap:28px;flex-wrap:wrap;counter-reset:f}.flow li{--s:var(--done);position:relative;flex:1 1 140px;border:1px solid var(--line);border-top:4px solid var(--s);border-radius:8px;padding:12px 14px;display:grid;gap:4px;background:var(--paper)}.flow li+li::before{content:"→";position:absolute;left:-22px;top:50%;transform:translateY(-50%);color:var(--muted)}.flow strong{font-size:15px}.flow span{font-size:13px;color:var(--muted)}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:18px}.compare div{border:1px solid var(--line);border-radius:8px;padding:14px 18px;background:var(--paper)}.compare .after{border-color:var(--accent)}.compare b{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.compare .after b{color:var(--accent)}.compare p{margin:6px 0 0;white-space:pre-wrap}
+.figure-gallery,.figure-bars,.status .figure{flex:none}.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:28px;align-items:start}.split .figure{margin:0}.split .figure img{max-height:48vh}.cover.has-hero h1{font-size:clamp(24px,3.3cqi,40px);max-width:36ch}
+.gallery{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:10px;align-items:start}.gallery figure{margin:0;min-width:0;display:flex;flex-direction:column;gap:6px}.gallery img{width:100%;max-height:38vh;object-fit:contain;border:1px solid var(--line);border-radius:6px;align-self:stretch}.gallery b{font-size:13px}
+.bars{border:1px solid var(--line);border-radius:8px;padding:12px 16px;background:var(--paper);display:grid;gap:8px}.bars .question{margin:0 0 2px;font-size:13px;color:var(--muted)}.bars .row{display:grid;grid-template-columns:minmax(0,16em) 1fr auto;gap:12px;align-items:center;font-size:clamp(14px,1.6cqi,17px)}.track2{display:block;height:22px;border-radius:4px;background:var(--card);border:1px solid var(--line);overflow:hidden}.fill{display:block;height:100%;background:var(--dropped)}.bars .hi .fill{background:var(--accent)}.bars .row b{font-variant-numeric:tabular-nums;min-width:3ch;text-align:right}
+.why{max-width:68ch;margin:12px 0 0;font-size:clamp(14px,1.6cqi,18px)}.why b{display:block;font-size:10px;font-weight:750;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:2px}
+details.evidence summary{cursor:pointer}.what{margin:14px 0 0;max-width:62ch;font-size:clamp(15px,1.7cqi,19px)}.cover .hero{flex:none;margin:0 0 18px}.cover .hero img{height:28vh;max-height:28vh;width:auto}.cover h1{margin:auto 0 18px}
+pre{margin:0;overflow:auto;background:#1b2420;color:#dfe9e3;border-radius:8px;padding:14px 18px;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+.decision{border-color:var(--call);border-width:1px 1px 1px 6px}.decision .eyebrow{color:var(--call)}
+.options{display:grid;grid-template-columns:repeat(var(--count),minmax(0,1fr));gap:12px;margin:6px 0 14px}
+.option{text-align:left;border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:5px;transition:border-color .15s,background .15s}.option:hover{border-color:var(--call)}.option strong{font-size:clamp(14px,1.6cqi,17px);line-height:1.3}.option>span:last-child{font-size:13px;color:var(--muted)}
+.option[aria-pressed=true]{border:2px solid var(--call);background:var(--call-soft);padding:11px 13px}.option[aria-pressed=true] .option-head b::after{content:" · Your call";font-weight:700;color:var(--call)}
+.option-head{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px}.option-head b{font-size:12px;margin-right:4px}.tag{border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}.tag.rec{background:var(--rec);color:var(--accent)}.tag.current{background:var(--cur)}
+.terms{display:grid;grid-template-columns:2fr 1.4fr 1fr 1fr;gap:6px 18px;margin:0 0 10px;font-size:13px}.terms div{min-width:0}.terms dt{font-size:10px;font-weight:750;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.terms dd{margin:2px 0 0}.rev-one-way{color:var(--blocked)}
+.note-field{display:flex;flex-direction:column;gap:4px;font-size:10px;font-weight:750;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}textarea{resize:vertical;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:8px 10px;font-size:14px;letter-spacing:0;text-transform:none;font-weight:400}
+.evidence{font-size:12px;color:var(--muted);margin:8px 0 0}
+.say{margin:auto 0 0;padding-top:14px;border-top:1px dashed var(--line);font:italic clamp(14px,1.5cqi,17px)/1.5 Georgia,serif;color:var(--muted);max-width:80ch}.say span{font:700 10px/1 -apple-system,sans-serif;letter-spacing:.12em;text-transform:uppercase;font-style:normal;margin-right:10px}.quiet .say{display:none}
+.recap{padding-left:22px;margin:8px 0 16px;display:grid;gap:8px;font-size:15px}.recap .q{display:block;color:var(--muted);font-size:13px}.recap .pick{font-weight:650}.recap .none{color:var(--muted)}
+.actions{display:flex;gap:14px;align-items:center;margin:14px 0}.actions button{border:0;background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:10px 18px;font-weight:650}#copied{font-size:13px;color:var(--muted)}
+.cooking{margin-top:auto;font-size:14px}.cooking b{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.cooking ul{margin:6px 0 0;padding-left:18px}
+.nav{display:flex;align-items:center;gap:14px;padding:10px 20px 14px}.nav button{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 14px}.track{flex:1;display:flex;gap:4px}.track button{flex:1;height:8px;padding:0;border:0;border-radius:4px;background:var(--line)}.track button.call{background:var(--call-soft);outline:1px solid var(--call)}.track button.seen{background:var(--accent)}.track button.call.seen{background:var(--call)}.track button[aria-current=true]{transform:scaleY(1.7)}
+/* Question slides: an open question only the director can answer. */
+.slide.question{border-color:var(--ask);border-width:1px 1px 1px 6px}.question .eyebrow{color:var(--ask)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}.chip{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:6px 14px;font-size:14px}.chip:hover{border-color:var(--ask)}.chip[aria-pressed=true]{border:2px solid var(--ask);background:var(--ask-soft);padding:5px 13px;font-weight:650}
+.note-field.answer textarea{font-size:16px;min-height:3.2em}.question .terms{grid-template-columns:2fr 1fr;margin-top:12px}.question .figure{flex:none;margin:0}.question .figure img{max-height:34vh}.ask-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}.ask-split .chips{margin-top:0}.track button.ask{background:var(--ask-soft);outline:1px solid var(--ask)}.track button.ask.seen{background:var(--ask)}
+/* Before and after slider: two same-size images, drag to reveal. */
+.slider{position:relative;display:inline-block;align-self:flex-start;max-width:100%;border:1px solid var(--line);border-radius:8px;overflow:hidden;line-height:0;user-select:none}.slider img{display:block;max-width:100%;max-height:40vh;border:0;border-radius:0}
+.slider-before{position:absolute;inset:0;clip-path:inset(0 calc(100% - var(--pos)) 0 0)}.slider-before img{width:100%;height:100%;object-fit:cover;max-height:none}
+.slider-handle{position:absolute;top:0;bottom:0;left:var(--pos);width:3px;margin-left:-1.5px;background:var(--card);box-shadow:0 0 0 1px #0004;pointer-events:none}.slider-handle::after{content:"⇆";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:var(--card);color:var(--ink);font:16px/34px sans-serif;text-align:center;box-shadow:0 1px 6px #0005}
+.slider-label{position:absolute;bottom:10px;font:700 11px/1 -apple-system,sans-serif;letter-spacing:.08em;text-transform:uppercase;background:#000a;color:#fff;padding:5px 8px;border-radius:4px;pointer-events:none}.slider-label.before{left:10px}.slider-label.after{right:10px}
+.slider input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize}.slider:focus-within{outline:3px solid var(--focus);outline-offset:3px}
+/* Line chart: hairline grid, 2px lines, direct labels at the end, native tooltips on every point. */
+.chart{border:1px solid var(--line);border-radius:8px;padding:12px 16px 6px;background:var(--paper)}.chart .question{margin:0 0 4px;font-size:13px;color:var(--muted)}.chart svg{display:block;width:100%;height:auto;max-height:30vh;overflow:visible}.chart text{stroke:none}.chart .hit{stroke:none}
+.chart .grid{stroke:var(--line);stroke-width:1}.chart .tick{fill:var(--muted);font-size:11px}.chart .series{fill:none;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}.chart .dot{stroke:var(--paper);stroke-width:2}.chart .hit{fill:transparent}.chart .pt .dot{opacity:.9}.chart .pt:hover .dot{r:6}
+.chart .s1{stroke:var(--s1)}.chart .s2{stroke:var(--s2)}.chart .s3{stroke:var(--s3)}.chart .s1 .dot,.chart .s1 rect{fill:var(--s1)}.chart .s2 .dot,.chart .s2 rect{fill:var(--s2)}.chart .s3 .dot,.chart .s3 rect{fill:var(--s3)}.chart .end rect{stroke:none}.chart .end text{fill:var(--ink);font-size:13px;font-weight:600}.chart .end .val{fill:var(--muted);font-weight:400;font-variant-numeric:tabular-nums}
+/* Stat tiles: the one or two numbers that matter, with a direction marker that never relies on color alone. */
+.stats{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:12px}.stat{border:1px solid var(--line);border-radius:10px;padding:16px 18px;background:var(--paper);display:flex;flex-direction:column;gap:4px}.stat b{font:400 clamp(30px,5cqi,58px)/1 Georgia,serif;letter-spacing:-.02em}.stat span{font-size:14px;color:var(--muted)}.stat em{font-style:normal;font-size:13px;font-weight:650;display:flex;gap:6px;align-items:baseline}.stat i{font-style:normal;font-size:11px}.tone-good em{color:var(--good)}.tone-bad em{color:var(--bad)}.tone-neutral em{color:var(--muted)}.tone-good b{color:var(--accent)}
+.chart{position:relative}.legend{display:flex;gap:16px;margin:0 0 4px;font-size:12px;color:var(--muted)}.legend span{display:flex;align-items:center;gap:6px}.legend i{width:12px;height:3px;border-radius:2px;background:var(--s1)}.legend .s2 i{background:var(--s2)}.legend .s3 i{background:var(--s3)}
+.figure-slider,.figure-stats,.figure-line{flex:none}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:760px){.chart .end{display:none}.chart .tick{font-size:24px}.chart svg{max-height:none}.ask-split{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.question .terms{grid-template-columns:1fr}.slider img{max-height:none}body{overflow:auto;display:block}.stage{display:block;padding:12px 16px}.slide{width:100%;aspect-ratio:auto;max-height:none;min-height:70vh;padding:24px 20px}.options,.terms,.compare,.gallery,.split{grid-template-columns:1fr}.bars .row{grid-template-columns:1fr auto}.bars .row span:first-child{grid-column:1/-1}.flow{flex-direction:column;gap:22px}.flow li{flex:none}.flow li+li::before{content:"↓";left:16px;top:-20px;transform:none}.nav{position:sticky;bottom:0;background:var(--paper);padding:10px 16px}.bar .hint,.bar .deck-label{display:none}}
+@media print{.slider-handle,.slider input{display:none}body{display:block;overflow:visible;background:#fff}.bar,.nav{display:none}.stage{display:block;padding:0}.slide{display:flex!important;page-break-after:always;break-after:page;width:100%;max-height:none;box-shadow:none;border-radius:0}textarea{display:none}}
+</style>
+</head>
+<body>
+<!--
+Starter deck for building a check-in by hand, when the renderer can't run (no Python, or a chat without tools).
+Generated from assets/sample/deck.json by render_deck.py --starter; never edit this file directly.
+
+Copy this whole file and keep the <style> and the page <script> exactly as they are: they are the look.
+Then rewrite the slides inside the main element. Each slide is marked with a COMPONENT comment.
+Delete the ones you don't need, duplicate the ones you do, and change only the words, numbers and images.
+
+- Escape <, > and & in your text. Put pictures in as data: URIs or https links.
+- Decision slides: data-id must be unique, data-recommended and data-current are option positions from 0,
+  data-default is what you do with no answer. Question slides need data-id and data-default.
+- Bars: each fill width is the value divided by the largest value, as a percent.
+- Line charts: edit only the JSON in data-chart (question, unit, x labels, series with one value per label).
+- Set the deck name and date in the meta script near the bottom, and the project name in <title> and the header.
+- Keep the rules in references/deck-data.md: a call within the first three slides, no more than two
+  information slides in a row, about five minutes in total.
+-->
+<header class="bar"><span><b>Catalog search (sample)</b><span class="deck-label"> · check-in</span></span><span class="right"><span class="hint">← → to move · V voiceover</span><span id="clock" title="Elapsed against the deck's time budget">0:00</span><span id="pos"></span><button type="button" id="voice" aria-pressed="true">Voiceover</button></span></header>
+<main class="stage" id="stage">
+<!-- COMPONENT: cover slide (headline, metrics, what it is) -->
+<section class="slide cover" data-kind="cover" data-seconds="20" aria-label="Slide 1">
+<div class="eyebrow">Check-in · Catalog search (sample) · Since Oct 17 (last check-in)</div><p class="what">A search box that lets store staff find any product in the catalog, instead of scrolling a list sorted by date.</p><h1>Staff now find the right product on the first try most of the time. Customers still see the old page, and one call about that is yours.</h1>
+<div class="metrics"><div class="metric"><b>6 s</b><span>to find a product, down from 40</span></div><div class="metric"><b>87%</b><span>right product in the top three</span></div><div class="metric"><b>2</b><span>old apps still on the old search</span></div></div><p class="count">2 calls and 1 question for you, 1 of them about reversing something already in place. About 5 minutes. Arrow keys or swipe to move; pick an option on any call slide.</p><p class="gaps">Not checked: Customer support tickets (no access from this session)</p></section>
+<!-- COMPONENT: status slide with a stats visual -->
+<section class="slide info status" data-kind="status" data-seconds="35" aria-label="Slide 2">
+<div class="eyebrow">Where things stand</div><h2>Search is live for every staff member</h2><p class="lede">Anyone on staff can type a product name and get the best match first. Customers still see the old page.</p><div class="split"><ul class="points"><li class="state-done"><i>done</i><span>Results ranked by best match</span></li><li class="state-done"><i>done</i><span>Typos still find the product</span></li><li class="state-moving"><i>moving</i><span>Filters by size and color</span></li><li class="state-blocked"><i>blocked</i><span>Customer-facing page</span></li></ul><figure class="figure figure-stats"><div class="stats" style="--n:2"><div class="stat tone-good"><b>6 s</b><span>to find a product</span><em><i aria-hidden="true">▲</i>34 s faster than the old page</em></div><div class="stat tone-good"><b>87%</b><span>right product in the top three</span><em><i aria-hidden="true">▲</i>up from 41%</em></div></div></figure></div><p class="why"><b>Why it matters</b>Store staff stop asking engineers to look products up for them.</p><details class="evidence"><summary>Sources</summary><a href="https://github.com/example/search/pull/41" target="_blank" rel="noopener">PR #41</a>, Staff timing test, Oct 23</details><p class="say"><span>Voiceover</span>The short version: staff search works and they are using it. The customer page is the open question.</p></section>
+<!-- COMPONENT: decision slide (made) -->
+<section class="slide decision made" data-kind="decision" data-id="keep-sqlite" data-timing="made" data-recommended="1" data-current="0" data-default="Keep the single file and raise it again next check-in." data-seconds="50" aria-label="Slide 3">
+<div class="eyebrow">Call 1 · Already made, reverse?</div><h2>Keep the search index in a single file, or move it to the main database now?</h2><p class="lede">I kept it in one file in week one to ship fast. It works, but a nightly rebuild now takes 40 minutes and blocks updates while it runs.</p>
+<div class="options" style="--count:2"><button type="button" class="option" data-decision="keep-sqlite" data-option="0" aria-pressed="false"><span class="option-head"><b>A</b><span class="tag current">In effect now</span></span><strong>Keep the single file</strong><span>No migration. The nightly rebuild keeps growing with the catalog.</span></button><button type="button" class="option" data-decision="keep-sqlite" data-option="1" aria-pressed="false"><span class="option-head"><b>B</b><span class="tag rec">My rec</span></span><strong>Move to the main database</strong><span>About two days of work. Rebuilds stop blocking updates.</span></button></div>
+<dl class="terms"><div class="rec-why"><dt>Why I'd pick B</dt><dd>Two days today. It gets more expensive with every feature we add on top.</dd></div><div><dt>If you don't weigh in</dt><dd>Keep the single file and raise it again next check-in.</dd></div><div><dt>Gets costly to change</dt><dd class="rev-costly"> Cheap until the filters land next week.</dd></div><div><dt>Need it by</dt><dd>Before filter work starts</dd></div></dl>
+<label class="note-field">Your note <textarea data-note="keep-sqlite" rows="1" placeholder="Optional. Context, a constraint, or a different option."></textarea></label><p class="evidence">Sources: <a href="https://github.com/example/search/pull/38" target="_blank" rel="noopener">PR #38</a></p></section>
+<!-- COMPONENT: visual slide with a slider visual -->
+<section class="slide info visual" data-kind="visual" data-seconds="35" aria-label="Slide 4">
+<div class="eyebrow">What it looks like</div><h2>The same search, before and after</h2><p class="lede">The old page listed the newest products first, so the mug a staff member wanted sat at the bottom. Now it comes first.</p><figure class="figure figure-slider"><div class="slider" style="--pos:50%"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNDgwIiB2aWV3Qm94PSIwIDAgODAwIDQ4MCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSxBcmlhbCxzYW5zLXNlcmlmIj4KPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0ODAiIGZpbGw9IiNmNGY1ZjciLz4KPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0NCIgZmlsbD0iIzFmMjkzMyIvPjxjaXJjbGUgY3g9IjIyIiBjeT0iMjIiIHI9IjYiIGZpbGw9IiNlZjZiNWIiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjIyIiByPSI2IiBmaWxsPSIjZjJjMTRlIi8+PGNpcmNsZSBjeD0iNjIiIGN5PSIyMiIgcj0iNiIgZmlsbD0iIzVmYjg3OCIvPgo8dGV4dCB4PSI5NiIgeT0iMjciIGZpbGw9IiNjYmQyZDkiIGZvbnQtc2l6ZT0iMTQiPkNhdGFsb2cgwrcgU3RhZmYgdG9vbHM8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSI2NCIgd2lkdGg9IjczNiIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2NmZDZkZCIvPjx0ZXh0IHg9IjUyIiB5PSI5MiIgZmlsbD0iIzFmMjkzMyIgZm9udC1zaXplPSIxNyI+Ymx1ZSBjZXJhbWljIG11ZzwvdGV4dD4KPHRleHQgeD0iMzIiIHk9IjE0MCIgZmlsbD0iIzUyNjA2ZCIgZm9udC1zaXplPSIxMyI+MzggcmVzdWx0cyDCtyBiZXN0IG1hdGNoIGZpcnN0PC90ZXh0Pgo8cmVjdCB4PSIzMiIgeT0iMTU2IiB3aWR0aD0iNzM2IiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI2U2ZjRlYyIgc3Ryb2tlPSIjMmY3ZDViIiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iNDYiIHk9IjE2NiIgd2lkdGg9IjM2IiBoZWlnaHQ9IjM2IiByeD0iNiIgZmlsbD0iIzdhYTdkOSIvPgo8dGV4dCB4PSI5NiIgeT0iMTgxIiBmaWxsPSIjMWYyOTMzIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5CbHVlIGNlcmFtaWMgbXVnLCAxMiBvejwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjIwMCIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+RXhhY3QgbWF0Y2ggwrcgaW4gc3RvY2s8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSIyMjAiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iMjMwIiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjN2FhN2Q5Ii8+Cjx0ZXh0IHg9Ijk2IiB5PSIyNDUiIGZpbGw9IiMxZjI5MzMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPkJsdWUgY2VyYW1pYyBtdWcsIDE2IG96PC90ZXh0Pgo8dGV4dCB4PSI5NiIgeT0iMjY0IiBmaWxsPSIjN2I4Nzk0IiBmb250LXNpemU9IjEyIj5DbG9zZSBtYXRjaCDCtyBpbiBzdG9jazwvdGV4dD4KPHJlY3QgeD0iMzIiIHk9IjI4NCIgd2lkdGg9IjczNiIgaGVpZ2h0PSI1NiIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UxZTVlYSIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxyZWN0IHg9IjQ2IiB5PSIyOTQiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgcng9IjYiIGZpbGw9IiM3YWE3ZDkiLz4KPHRleHQgeD0iOTYiIHk9IjMwOSIgZmlsbD0iIzFmMjkzMyIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjQwMCI+Qmx1ZSBlbmFtZWwgY2FtcGluZyBjdXA8L3RleHQ+Cjx0ZXh0IHg9Ijk2IiB5PSIzMjgiIGZpbGw9IiM3Yjg3OTQiIGZvbnQtc2l6ZT0iMTIiPlNpbWlsYXIgwrcgaW4gc3RvY2s8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSIzNDgiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iMzU4IiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjN2FhN2Q5Ii8+Cjx0ZXh0IHg9Ijk2IiB5PSIzNzMiIGZpbGw9IiMxZjI5MzMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPkNlcmFtaWMgbXVnIHNldCwgYmx1ZSBnbGF6ZTwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjM5MiIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+U2ltaWxhciDCtyAyIGxlZnQ8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSI0MTIiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iNDIyIiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjZDlkZGUyIi8+Cjx0ZXh0IHg9Ijk2IiB5PSI0MzciIGZpbGw9IiM3Yjg3OTQiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPkJsdWUgY2VyYW1pYyBib3dsPC90ZXh0Pgo8dGV4dCB4PSI5NiIgeT0iNDU2IiBmaWxsPSIjN2I4Nzk0IiBmb250LXNpemU9IjEyIj5SZWxhdGVkPC90ZXh0Pgo8dGV4dCB4PSIzMiIgeT0iNDkyIiBmaWxsPSIjMmY3ZDViIiBmb250LXNpemU9IjEzIj5UeXBvLXRvbGVyYW50OiAiYmx1IGNlcmFtYyBtdWciIGZpbmRzIHRoZSBzYW1lIGxpc3Q8L3RleHQ+Cjwvc3ZnPg==" alt="New results: the blue mug first, close matches below"><div class="slider-before"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNDgwIiB2aWV3Qm94PSIwIDAgODAwIDQ4MCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSxBcmlhbCxzYW5zLXNlcmlmIj4KPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0ODAiIGZpbGw9IiNmNGY1ZjciLz4KPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0NCIgZmlsbD0iIzFmMjkzMyIvPjxjaXJjbGUgY3g9IjIyIiBjeT0iMjIiIHI9IjYiIGZpbGw9IiNlZjZiNWIiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjIyIiByPSI2IiBmaWxsPSIjZjJjMTRlIi8+PGNpcmNsZSBjeD0iNjIiIGN5PSIyMiIgcj0iNiIgZmlsbD0iIzVmYjg3OCIvPgo8dGV4dCB4PSI5NiIgeT0iMjciIGZpbGw9IiNjYmQyZDkiIGZvbnQtc2l6ZT0iMTQiPkNhdGFsb2cgwrcgU3RhZmYgdG9vbHM8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSI2NCIgd2lkdGg9IjczNiIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2NmZDZkZCIvPjx0ZXh0IHg9IjUyIiB5PSI5MiIgZmlsbD0iIzFmMjkzMyIgZm9udC1zaXplPSIxNyI+Ymx1ZSBjZXJhbWljIG11ZzwvdGV4dD4KPHRleHQgeD0iMzIiIHk9IjE0MCIgZmlsbD0iIzUyNjA2ZCIgZm9udC1zaXplPSIxMyI+NDEyIHJlc3VsdHMgwrcgbmV3ZXN0IGZpcnN0PC90ZXh0Pgo8cmVjdCB4PSIzMiIgeT0iMTU2IiB3aWR0aD0iNzM2IiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTFlNWVhIiBzdHJva2Utd2lkdGg9IjEiLz4KPHJlY3QgeD0iNDYiIHk9IjE2NiIgd2lkdGg9IjM2IiBoZWlnaHQ9IjM2IiByeD0iNiIgZmlsbD0iI2Q5ZGRlMiIvPgo8dGV4dCB4PSI5NiIgeT0iMTgxIiBmaWxsPSIjN2I4Nzk0IiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNDAwIj5HaWZ0IGNhcmQsICQyNTwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjIwMCIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+QWRkZWQgdG9kYXk8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSIyMjAiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iMjMwIiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjZDlkZGUyIi8+Cjx0ZXh0IHg9Ijk2IiB5PSIyNDUiIGZpbGw9IiM3Yjg3OTQiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPlRlYSB0b3dlbCBzZXQ8L3RleHQ+Cjx0ZXh0IHg9Ijk2IiB5PSIyNjQiIGZpbGw9IiM3Yjg3OTQiIGZvbnQtc2l6ZT0iMTIiPkFkZGVkIHllc3RlcmRheTwvdGV4dD4KPHJlY3QgeD0iMzIiIHk9IjI4NCIgd2lkdGg9IjczNiIgaGVpZ2h0PSI1NiIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UxZTVlYSIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxyZWN0IHg9IjQ2IiB5PSIyOTQiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgcng9IjYiIGZpbGw9IiNkOWRkZTIiLz4KPHRleHQgeD0iOTYiIHk9IjMwOSIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjQwMCI+UmVkIGNlcmFtaWMgYm93bDwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjMyOCIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+QWRkZWQgT2N0IDIwPC90ZXh0Pgo8cmVjdCB4PSIzMiIgeT0iMzQ4IiB3aWR0aD0iNzM2IiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTFlNWVhIiBzdHJva2Utd2lkdGg9IjEiLz4KPHJlY3QgeD0iNDYiIHk9IjM1OCIgd2lkdGg9IjM2IiBoZWlnaHQ9IjM2IiByeD0iNiIgZmlsbD0iI2Q5ZGRlMiIvPgo8dGV4dCB4PSI5NiIgeT0iMzczIiBmaWxsPSIjN2I4Nzk0IiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNDAwIj5CbHVlIGVuYW1lbCBjYW1waW5nIGN1cDwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjM5MiIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+QWRkZWQgT2N0IDE4PC90ZXh0Pgo8cmVjdCB4PSIzMiIgeT0iNDEyIiB3aWR0aD0iNzM2IiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTFlNWVhIiBzdHJva2Utd2lkdGg9IjEiLz4KPHJlY3QgeD0iNDYiIHk9IjQyMiIgd2lkdGg9IjM2IiBoZWlnaHQ9IjM2IiByeD0iNiIgZmlsbD0iIzdhYTdkOSIvPgo8dGV4dCB4PSI5NiIgeT0iNDM3IiBmaWxsPSIjMWYyOTMzIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNDAwIj5CbHVlIGNlcmFtaWMgbXVnLCAxMiBvejwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjQ1NiIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+QWRkZWQgTWFyIDM8L3RleHQ+Cjwvc3ZnPg==" alt="Old results: gift cards and towels above the mug"></div><span class="slider-handle" aria-hidden="true"></span><b class="slider-label before">Before</b><b class="slider-label after">After</b><input type="range" min="0" max="100" value="50" aria-label="Drag to compare Before with After"></div><figcaption>Drag the handle. Same query on Oct 10 and today.</figcaption></figure><p class="why"><b>Why it matters</b>The first result is the one they wanted, so nobody scrolls.</p></section>
+<!-- COMPONENT: visual slide with a line visual -->
+<section class="slide info visual" data-kind="visual" data-seconds="35" aria-label="Slide 5">
+<div class="eyebrow">What it looks like</div><h2>Search time fell week by week as ranking improved</h2><p class="lede">Each ranking fix cut the time it takes to find a product. The last two weeks are flat, so the easy wins are done.</p><figure class="figure figure-line"><div class="chart line-chart" data-chart="{&quot;question&quot;: &quot;Seconds for staff to find a product, by week&quot;, &quot;unit&quot;: &quot;s&quot;, &quot;x&quot;: [&quot;Sep 22&quot;, &quot;Sep 29&quot;, &quot;Oct 6&quot;, &quot;Oct 13&quot;, &quot;Oct 20&quot;, &quot;Oct 27&quot;], &quot;series&quot;: [{&quot;label&quot;: &quot;New search&quot;, &quot;values&quot;: [38, 21, 12, 8, 6, 6]}, {&quot;label&quot;: &quot;Old page&quot;, &quot;values&quot;: [40, 41, 39, 40, 42, 40]}]}"><p class="question">Seconds for staff to find a product, by week</p></div><figcaption>Timed on the same ten products each week.</figcaption></figure><p class="why"><b>Why it matters</b>More ranking work now buys little. Filters are the next real gain.</p></section>
+<!-- COMPONENT: question slide with a image visual -->
+<section class="slide question" data-kind="question" data-id="out-of-stock" data-default="Keep the exact match first." data-seconds="40" aria-label="Slide 6">
+<div class="eyebrow">Question 1 · Only you know this</div><h2>When the exact item is sold out, should staff see similar items first?</h2><p class="lede">Right now a sold-out exact match still ranks first. Staff in two stores asked for in-stock lookalikes on top. I don&#x27;t know which matters more to you.</p><div class="ask-split"><figure class="figure figure-image"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNDgwIiB2aWV3Qm94PSIwIDAgODAwIDQ4MCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSxBcmlhbCxzYW5zLXNlcmlmIj4KPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0ODAiIGZpbGw9IiNmNGY1ZjciLz4KPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0NCIgZmlsbD0iIzFmMjkzMyIvPjxjaXJjbGUgY3g9IjIyIiBjeT0iMjIiIHI9IjYiIGZpbGw9IiNlZjZiNWIiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjIyIiByPSI2IiBmaWxsPSIjZjJjMTRlIi8+PGNpcmNsZSBjeD0iNjIiIGN5PSIyMiIgcj0iNiIgZmlsbD0iIzVmYjg3OCIvPgo8dGV4dCB4PSI5NiIgeT0iMjciIGZpbGw9IiNjYmQyZDkiIGZvbnQtc2l6ZT0iMTQiPkNhdGFsb2cgwrcgU3RhZmYgdG9vbHM8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSI2NCIgd2lkdGg9IjczNiIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2NmZDZkZCIvPjx0ZXh0IHg9IjUyIiB5PSI5MiIgZmlsbD0iIzFmMjkzMyIgZm9udC1zaXplPSIxNyI+Ymx1ZSBjZXJhbWljIG11ZzwvdGV4dD4KPHRleHQgeD0iMzIiIHk9IjE0MCIgZmlsbD0iIzUyNjA2ZCIgZm9udC1zaXplPSIxMyI+MzggcmVzdWx0cyDCtyBiZXN0IG1hdGNoIGZpcnN0PC90ZXh0Pgo8cmVjdCB4PSIzMiIgeT0iMTU2IiB3aWR0aD0iNzM2IiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI2U2ZjRlYyIgc3Ryb2tlPSIjMmY3ZDViIiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iNDYiIHk9IjE2NiIgd2lkdGg9IjM2IiBoZWlnaHQ9IjM2IiByeD0iNiIgZmlsbD0iIzdhYTdkOSIvPgo8dGV4dCB4PSI5NiIgeT0iMTgxIiBmaWxsPSIjMWYyOTMzIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5CbHVlIGNlcmFtaWMgbXVnLCAxMiBvejwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjIwMCIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+RXhhY3QgbWF0Y2ggwrcgaW4gc3RvY2s8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSIyMjAiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iMjMwIiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjN2FhN2Q5Ii8+Cjx0ZXh0IHg9Ijk2IiB5PSIyNDUiIGZpbGw9IiMxZjI5MzMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPkJsdWUgY2VyYW1pYyBtdWcsIDE2IG96PC90ZXh0Pgo8dGV4dCB4PSI5NiIgeT0iMjY0IiBmaWxsPSIjN2I4Nzk0IiBmb250LXNpemU9IjEyIj5DbG9zZSBtYXRjaCDCtyBpbiBzdG9jazwvdGV4dD4KPHJlY3QgeD0iMzIiIHk9IjI4NCIgd2lkdGg9IjczNiIgaGVpZ2h0PSI1NiIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UxZTVlYSIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxyZWN0IHg9IjQ2IiB5PSIyOTQiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgcng9IjYiIGZpbGw9IiM3YWE3ZDkiLz4KPHRleHQgeD0iOTYiIHk9IjMwOSIgZmlsbD0iIzFmMjkzMyIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjQwMCI+Qmx1ZSBlbmFtZWwgY2FtcGluZyBjdXA8L3RleHQ+Cjx0ZXh0IHg9Ijk2IiB5PSIzMjgiIGZpbGw9IiM3Yjg3OTQiIGZvbnQtc2l6ZT0iMTIiPlNpbWlsYXIgwrcgaW4gc3RvY2s8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSIzNDgiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iMzU4IiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjN2FhN2Q5Ii8+Cjx0ZXh0IHg9Ijk2IiB5PSIzNzMiIGZpbGw9IiMxZjI5MzMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPkNlcmFtaWMgbXVnIHNldCwgYmx1ZSBnbGF6ZTwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjM5MiIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+U2ltaWxhciDCtyAyIGxlZnQ8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSI0MTIiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iNDIyIiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjZDlkZGUyIi8+Cjx0ZXh0IHg9Ijk2IiB5PSI0MzciIGZpbGw9IiM3Yjg3OTQiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPkJsdWUgY2VyYW1pYyBib3dsPC90ZXh0Pgo8dGV4dCB4PSI5NiIgeT0iNDU2IiBmaWxsPSIjN2I4Nzk0IiBmb250LXNpemU9IjEyIj5SZWxhdGVkPC90ZXh0Pgo8dGV4dCB4PSIzMiIgeT0iNDkyIiBmaWxsPSIjMmY3ZDViIiBmb250LXNpemU9IjEzIj5UeXBvLXRvbGVyYW50OiAiYmx1IGNlcmFtYyBtdWciIGZpbmRzIHRoZSBzYW1lIGxpc3Q8L3RleHQ+Cjwvc3ZnPg==" alt="Results with the exact mug first and similar mugs below"></figure><div><div class="chips" role="group" aria-label="Quick answers"><button type="button" class="chip" data-question="out-of-stock" data-option="0" aria-pressed="false">Exact match first, always</button><button type="button" class="chip" data-question="out-of-stock" data-option="1" aria-pressed="false">In-stock lookalikes first</button><button type="button" class="chip" data-question="out-of-stock" data-option="2" aria-pressed="false">Ask the store managers</button></div>
+<label class="note-field answer">Your answer <textarea data-note="out-of-stock" rows="2" placeholder="A sentence is plenty."></textarea></label>
+<dl class="terms"><div><dt>If you don't answer</dt><dd>Keep the exact match first.</dd></div><div><dt>Need it by</dt><dd>Oct 31</dd></div></dl></div></div></section>
+<!-- COMPONENT: status slide with a bars visual -->
+<section class="slide info status" data-kind="status" data-seconds="35" aria-label="Slide 7">
+<div class="eyebrow">Where things stand</div><h2>Two old apps still use the old search</h2><p class="lede">The warehouse scanner and the returns desk call the old search directly. Moving them is small, but each needs a day of testing in the store.</p><div class="split"><ul class="points"><li class="state-risk"><i>risk</i><span>Warehouse scanner</span></li><li class="state-risk"><i>risk</i><span>Returns desk</span></li></ul><figure class="figure figure-bars"><div class="bars"><p class="question">Searches per day still hitting the old system</p><div class="row hi"><span>Warehouse scanner</span><span class="track2"><span class="fill" style="width:100.0%"></span></span><b>1200</b></div><div class="row hi"><span>Returns desk</span><span class="track2"><span class="fill" style="width:25.0%"></span></span><b>300</b></div><div class="row"><span>Staff search page</span><span class="track2"><span class="fill" style="width:0.0%"></span></span><b>0</b></div></div></figure></div><p class="why"><b>Why it matters</b>Until they move, we pay to run two search systems.</p><details class="evidence"><summary>Sources</summary>Request logs, Oct 20 to 26</details></section>
+<!-- COMPONENT: decision slide (upcoming) -->
+<section class="slide decision upcoming" data-kind="decision" data-id="customer-launch" data-timing="upcoming" data-recommended="0" data-default="Wait. Nothing customer-facing changes without your call." data-seconds="50" aria-label="Slide 8">
+<div class="eyebrow">Call 2 · Coming up, your call</div><h2>Turn on the new search for customers this month?</h2><p class="lede">Staff results are good. Customers type differently, and we have not tested with them. A launch is public, so I won&#x27;t do it without you.</p>
+<div class="options" style="--count:3"><button type="button" class="option" data-decision="customer-launch" data-option="0" aria-pressed="false"><span class="option-head"><b>A</b><span class="tag rec">My rec</span></span><strong>Launch to 10% of customers</strong><span>Real customer data in a week. Easy to switch off.</span></button><button type="button" class="option" data-decision="customer-launch" data-option="1" aria-pressed="false"><span class="option-head"><b>B</b></span><strong>Launch to everyone</strong><span>Fastest. A bad ranking day hits every customer.</span></button><button type="button" class="option" data-decision="customer-launch" data-option="2" aria-pressed="false"><span class="option-head"><b>C</b></span><strong>Wait for filters</strong><span>Launch in about three weeks with filters included.</span></button></div>
+<dl class="terms"><div class="rec-why"><dt>Why I'd pick A</dt><dd>A small launch tells us how customers search without betting the store on it.</dd></div><div><dt>If you don't weigh in</dt><dd>Wait. Nothing customer-facing changes without your call.</dd></div><div><dt>One-way door</dt><dd class="rev-one-way"> Customers see it the moment it is on.</dd></div><div><dt>Need it by</dt><dd>Nov 7 to make this month</dd></div></dl>
+<label class="note-field">Your note <textarea data-note="customer-launch" rows="1" placeholder="Optional. Context, a constraint, or a different option."></textarea></label></section>
+<!-- COMPONENT: closing recap (leave as is, except the "keep going on" list) -->
+<section class="slide close" data-kind="close" data-seconds="25" aria-label="Slide 9">
+<div class="eyebrow">Wrap-up</div><h2>Your calls</h2><ol class="recap" id="recap"></ol>
+<label class="note-field">Anything else <textarea data-note="_general" rows="2" placeholder="Optional. Priorities, worries, or a question for me."></textarea></label>
+<div class="actions"><button type="button" id="copy">Copy my calls</button><span id="copied" role="status"></span></div>
+<div class="cooking"><b>While you decide, I keep going on</b><ul><li>Filters by size and color</li><li>Moving the warehouse scanner to the new search</li></ul></div></section>
+<!-- More components. Copy a section out of this template into the deck to use it. -->
+<template id="more-components">
+<!-- COMPONENT: visual slide with a gallery visual -->
+<section class="slide info visual" data-kind="visual" data-seconds="35" aria-label="Slide 0">
+<div class="eyebrow">What it looks like</div><h2>The gallery component</h2><p class="lede">The lede says what changed for the user.</p><figure class="figure figure-gallery"><div class="gallery" style="--n:2"><figure><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNDgwIiB2aWV3Qm94PSIwIDAgODAwIDQ4MCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSxBcmlhbCxzYW5zLXNlcmlmIj4KPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0ODAiIGZpbGw9IiNmNGY1ZjciLz4KPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0NCIgZmlsbD0iIzFmMjkzMyIvPjxjaXJjbGUgY3g9IjIyIiBjeT0iMjIiIHI9IjYiIGZpbGw9IiNlZjZiNWIiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjIyIiByPSI2IiBmaWxsPSIjZjJjMTRlIi8+PGNpcmNsZSBjeD0iNjIiIGN5PSIyMiIgcj0iNiIgZmlsbD0iIzVmYjg3OCIvPgo8dGV4dCB4PSI5NiIgeT0iMjciIGZpbGw9IiNjYmQyZDkiIGZvbnQtc2l6ZT0iMTQiPkNhdGFsb2cgwrcgU3RhZmYgdG9vbHM8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSI2NCIgd2lkdGg9IjczNiIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2NmZDZkZCIvPjx0ZXh0IHg9IjUyIiB5PSI5MiIgZmlsbD0iIzFmMjkzMyIgZm9udC1zaXplPSIxNyI+Ymx1ZSBjZXJhbWljIG11ZzwvdGV4dD4KPHRleHQgeD0iMzIiIHk9IjE0MCIgZmlsbD0iIzUyNjA2ZCIgZm9udC1zaXplPSIxMyI+NDEyIHJlc3VsdHMgwrcgbmV3ZXN0IGZpcnN0PC90ZXh0Pgo8cmVjdCB4PSIzMiIgeT0iMTU2IiB3aWR0aD0iNzM2IiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTFlNWVhIiBzdHJva2Utd2lkdGg9IjEiLz4KPHJlY3QgeD0iNDYiIHk9IjE2NiIgd2lkdGg9IjM2IiBoZWlnaHQ9IjM2IiByeD0iNiIgZmlsbD0iI2Q5ZGRlMiIvPgo8dGV4dCB4PSI5NiIgeT0iMTgxIiBmaWxsPSIjN2I4Nzk0IiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNDAwIj5HaWZ0IGNhcmQsICQyNTwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjIwMCIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+QWRkZWQgdG9kYXk8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSIyMjAiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iMjMwIiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjZDlkZGUyIi8+Cjx0ZXh0IHg9Ijk2IiB5PSIyNDUiIGZpbGw9IiM3Yjg3OTQiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPlRlYSB0b3dlbCBzZXQ8L3RleHQ+Cjx0ZXh0IHg9Ijk2IiB5PSIyNjQiIGZpbGw9IiM3Yjg3OTQiIGZvbnQtc2l6ZT0iMTIiPkFkZGVkIHllc3RlcmRheTwvdGV4dD4KPHJlY3QgeD0iMzIiIHk9IjI4NCIgd2lkdGg9IjczNiIgaGVpZ2h0PSI1NiIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UxZTVlYSIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxyZWN0IHg9IjQ2IiB5PSIyOTQiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgcng9IjYiIGZpbGw9IiNkOWRkZTIiLz4KPHRleHQgeD0iOTYiIHk9IjMwOSIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjQwMCI+UmVkIGNlcmFtaWMgYm93bDwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjMyOCIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+QWRkZWQgT2N0IDIwPC90ZXh0Pgo8cmVjdCB4PSIzMiIgeT0iMzQ4IiB3aWR0aD0iNzM2IiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTFlNWVhIiBzdHJva2Utd2lkdGg9IjEiLz4KPHJlY3QgeD0iNDYiIHk9IjM1OCIgd2lkdGg9IjM2IiBoZWlnaHQ9IjM2IiByeD0iNiIgZmlsbD0iI2Q5ZGRlMiIvPgo8dGV4dCB4PSI5NiIgeT0iMzczIiBmaWxsPSIjN2I4Nzk0IiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNDAwIj5CbHVlIGVuYW1lbCBjYW1waW5nIGN1cDwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjM5MiIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+QWRkZWQgT2N0IDE4PC90ZXh0Pgo8cmVjdCB4PSIzMiIgeT0iNDEyIiB3aWR0aD0iNzM2IiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTFlNWVhIiBzdHJva2Utd2lkdGg9IjEiLz4KPHJlY3QgeD0iNDYiIHk9IjQyMiIgd2lkdGg9IjM2IiBoZWlnaHQ9IjM2IiByeD0iNiIgZmlsbD0iIzdhYTdkOSIvPgo8dGV4dCB4PSI5NiIgeT0iNDM3IiBmaWxsPSIjMWYyOTMzIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNDAwIj5CbHVlIGNlcmFtaWMgbXVnLCAxMiBvejwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjQ1NiIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+QWRkZWQgTWFyIDM8L3RleHQ+Cjwvc3ZnPg==" alt="Old results"><b>Before</b></figure><figure><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNDgwIiB2aWV3Qm94PSIwIDAgODAwIDQ4MCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSxBcmlhbCxzYW5zLXNlcmlmIj4KPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0ODAiIGZpbGw9IiNmNGY1ZjciLz4KPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0NCIgZmlsbD0iIzFmMjkzMyIvPjxjaXJjbGUgY3g9IjIyIiBjeT0iMjIiIHI9IjYiIGZpbGw9IiNlZjZiNWIiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjIyIiByPSI2IiBmaWxsPSIjZjJjMTRlIi8+PGNpcmNsZSBjeD0iNjIiIGN5PSIyMiIgcj0iNiIgZmlsbD0iIzVmYjg3OCIvPgo8dGV4dCB4PSI5NiIgeT0iMjciIGZpbGw9IiNjYmQyZDkiIGZvbnQtc2l6ZT0iMTQiPkNhdGFsb2cgwrcgU3RhZmYgdG9vbHM8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSI2NCIgd2lkdGg9IjczNiIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2NmZDZkZCIvPjx0ZXh0IHg9IjUyIiB5PSI5MiIgZmlsbD0iIzFmMjkzMyIgZm9udC1zaXplPSIxNyI+Ymx1ZSBjZXJhbWljIG11ZzwvdGV4dD4KPHRleHQgeD0iMzIiIHk9IjE0MCIgZmlsbD0iIzUyNjA2ZCIgZm9udC1zaXplPSIxMyI+MzggcmVzdWx0cyDCtyBiZXN0IG1hdGNoIGZpcnN0PC90ZXh0Pgo8cmVjdCB4PSIzMiIgeT0iMTU2IiB3aWR0aD0iNzM2IiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI2U2ZjRlYyIgc3Ryb2tlPSIjMmY3ZDViIiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iNDYiIHk9IjE2NiIgd2lkdGg9IjM2IiBoZWlnaHQ9IjM2IiByeD0iNiIgZmlsbD0iIzdhYTdkOSIvPgo8dGV4dCB4PSI5NiIgeT0iMTgxIiBmaWxsPSIjMWYyOTMzIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5CbHVlIGNlcmFtaWMgbXVnLCAxMiBvejwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjIwMCIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+RXhhY3QgbWF0Y2ggwrcgaW4gc3RvY2s8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSIyMjAiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iMjMwIiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjN2FhN2Q5Ii8+Cjx0ZXh0IHg9Ijk2IiB5PSIyNDUiIGZpbGw9IiMxZjI5MzMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPkJsdWUgY2VyYW1pYyBtdWcsIDE2IG96PC90ZXh0Pgo8dGV4dCB4PSI5NiIgeT0iMjY0IiBmaWxsPSIjN2I4Nzk0IiBmb250LXNpemU9IjEyIj5DbG9zZSBtYXRjaCDCtyBpbiBzdG9jazwvdGV4dD4KPHJlY3QgeD0iMzIiIHk9IjI4NCIgd2lkdGg9IjczNiIgaGVpZ2h0PSI1NiIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UxZTVlYSIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxyZWN0IHg9IjQ2IiB5PSIyOTQiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgcng9IjYiIGZpbGw9IiM3YWE3ZDkiLz4KPHRleHQgeD0iOTYiIHk9IjMwOSIgZmlsbD0iIzFmMjkzMyIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjQwMCI+Qmx1ZSBlbmFtZWwgY2FtcGluZyBjdXA8L3RleHQ+Cjx0ZXh0IHg9Ijk2IiB5PSIzMjgiIGZpbGw9IiM3Yjg3OTQiIGZvbnQtc2l6ZT0iMTIiPlNpbWlsYXIgwrcgaW4gc3RvY2s8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSIzNDgiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iMzU4IiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjN2FhN2Q5Ii8+Cjx0ZXh0IHg9Ijk2IiB5PSIzNzMiIGZpbGw9IiMxZjI5MzMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPkNlcmFtaWMgbXVnIHNldCwgYmx1ZSBnbGF6ZTwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjM5MiIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+U2ltaWxhciDCtyAyIGxlZnQ8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSI0MTIiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iNDIyIiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjZDlkZGUyIi8+Cjx0ZXh0IHg9Ijk2IiB5PSI0MzciIGZpbGw9IiM3Yjg3OTQiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPkJsdWUgY2VyYW1pYyBib3dsPC90ZXh0Pgo8dGV4dCB4PSI5NiIgeT0iNDU2IiBmaWxsPSIjN2I4Nzk0IiBmb250LXNpemU9IjEyIj5SZWxhdGVkPC90ZXh0Pgo8dGV4dCB4PSIzMiIgeT0iNDkyIiBmaWxsPSIjMmY3ZDViIiBmb250LXNpemU9IjEzIj5UeXBvLXRvbGVyYW50OiAiYmx1IGNlcmFtYyBtdWciIGZpbmRzIHRoZSBzYW1lIGxpc3Q8L3RleHQ+Cjwvc3ZnPg==" alt="New results"><b>After</b></figure></div><figcaption>Two or three images side by side.</figcaption></figure><p class="why"><b>Why it matters</b>One sentence on why it matters.</p></section>
+<!-- COMPONENT: visual slide with a image visual -->
+<section class="slide info visual" data-kind="visual" data-seconds="35" aria-label="Slide 0">
+<div class="eyebrow">What it looks like</div><h2>The image component</h2><p class="lede">The lede says what changed for the user.</p><figure class="figure figure-image"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNDgwIiB2aWV3Qm94PSIwIDAgODAwIDQ4MCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSxBcmlhbCxzYW5zLXNlcmlmIj4KPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0ODAiIGZpbGw9IiNmNGY1ZjciLz4KPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0NCIgZmlsbD0iIzFmMjkzMyIvPjxjaXJjbGUgY3g9IjIyIiBjeT0iMjIiIHI9IjYiIGZpbGw9IiNlZjZiNWIiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjIyIiByPSI2IiBmaWxsPSIjZjJjMTRlIi8+PGNpcmNsZSBjeD0iNjIiIGN5PSIyMiIgcj0iNiIgZmlsbD0iIzVmYjg3OCIvPgo8dGV4dCB4PSI5NiIgeT0iMjciIGZpbGw9IiNjYmQyZDkiIGZvbnQtc2l6ZT0iMTQiPkNhdGFsb2cgwrcgU3RhZmYgdG9vbHM8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSI2NCIgd2lkdGg9IjczNiIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2NmZDZkZCIvPjx0ZXh0IHg9IjUyIiB5PSI5MiIgZmlsbD0iIzFmMjkzMyIgZm9udC1zaXplPSIxNyI+Ymx1ZSBjZXJhbWljIG11ZzwvdGV4dD4KPHRleHQgeD0iMzIiIHk9IjE0MCIgZmlsbD0iIzUyNjA2ZCIgZm9udC1zaXplPSIxMyI+MzggcmVzdWx0cyDCtyBiZXN0IG1hdGNoIGZpcnN0PC90ZXh0Pgo8cmVjdCB4PSIzMiIgeT0iMTU2IiB3aWR0aD0iNzM2IiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI2U2ZjRlYyIgc3Ryb2tlPSIjMmY3ZDViIiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iNDYiIHk9IjE2NiIgd2lkdGg9IjM2IiBoZWlnaHQ9IjM2IiByeD0iNiIgZmlsbD0iIzdhYTdkOSIvPgo8dGV4dCB4PSI5NiIgeT0iMTgxIiBmaWxsPSIjMWYyOTMzIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5CbHVlIGNlcmFtaWMgbXVnLCAxMiBvejwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjIwMCIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+RXhhY3QgbWF0Y2ggwrcgaW4gc3RvY2s8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSIyMjAiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iMjMwIiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjN2FhN2Q5Ii8+Cjx0ZXh0IHg9Ijk2IiB5PSIyNDUiIGZpbGw9IiMxZjI5MzMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPkJsdWUgY2VyYW1pYyBtdWcsIDE2IG96PC90ZXh0Pgo8dGV4dCB4PSI5NiIgeT0iMjY0IiBmaWxsPSIjN2I4Nzk0IiBmb250LXNpemU9IjEyIj5DbG9zZSBtYXRjaCDCtyBpbiBzdG9jazwvdGV4dD4KPHJlY3QgeD0iMzIiIHk9IjI4NCIgd2lkdGg9IjczNiIgaGVpZ2h0PSI1NiIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UxZTVlYSIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxyZWN0IHg9IjQ2IiB5PSIyOTQiIHdpZHRoPSIzNiIgaGVpZ2h0PSIzNiIgcng9IjYiIGZpbGw9IiM3YWE3ZDkiLz4KPHRleHQgeD0iOTYiIHk9IjMwOSIgZmlsbD0iIzFmMjkzMyIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjQwMCI+Qmx1ZSBlbmFtZWwgY2FtcGluZyBjdXA8L3RleHQ+Cjx0ZXh0IHg9Ijk2IiB5PSIzMjgiIGZpbGw9IiM3Yjg3OTQiIGZvbnQtc2l6ZT0iMTIiPlNpbWlsYXIgwrcgaW4gc3RvY2s8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSIzNDgiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iMzU4IiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjN2FhN2Q5Ii8+Cjx0ZXh0IHg9Ijk2IiB5PSIzNzMiIGZpbGw9IiMxZjI5MzMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPkNlcmFtaWMgbXVnIHNldCwgYmx1ZSBnbGF6ZTwvdGV4dD4KPHRleHQgeD0iOTYiIHk9IjM5MiIgZmlsbD0iIzdiODc5NCIgZm9udC1zaXplPSIxMiI+U2ltaWxhciDCtyAyIGxlZnQ8L3RleHQ+CjxyZWN0IHg9IjMyIiB5PSI0MTIiIHdpZHRoPSI3MzYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMWU1ZWEiIHN0cm9rZS13aWR0aD0iMSIvPgo8cmVjdCB4PSI0NiIgeT0iNDIyIiB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjZDlkZGUyIi8+Cjx0ZXh0IHg9Ijk2IiB5PSI0MzciIGZpbGw9IiM3Yjg3OTQiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI0MDAiPkJsdWUgY2VyYW1pYyBib3dsPC90ZXh0Pgo8dGV4dCB4PSI5NiIgeT0iNDU2IiBmaWxsPSIjN2I4Nzk0IiBmb250LXNpemU9IjEyIj5SZWxhdGVkPC90ZXh0Pgo8dGV4dCB4PSIzMiIgeT0iNDkyIiBmaWxsPSIjMmY3ZDViIiBmb250LXNpemU9IjEzIj5UeXBvLXRvbGVyYW50OiAiYmx1IGNlcmFtYyBtdWciIGZpbmRzIHRoZSBzYW1lIGxpc3Q8L3RleHQ+Cjwvc3ZnPg==" alt="The new results page"><figcaption>One screenshot or diagram.</figcaption></figure><p class="why"><b>Why it matters</b>One sentence on why it matters.</p></section>
+<!-- COMPONENT: visual slide with a flow visual -->
+<section class="slide info visual" data-kind="visual" data-seconds="35" aria-label="Slide 0">
+<div class="eyebrow">What it looks like</div><h2>The flow component</h2><p class="lede">The lede says what changed for the user.</p><figure class="figure figure-flow"><ol class="flow"><li class="state-done"><strong>Typed query</strong><span>Staff search page</span></li><li class="state-done"><strong>Ranking</strong><span>Best match first</span></li><li class="state-moving"><strong>Filters</strong><span>Size and color</span></li></ol></figure><p class="why"><b>Why it matters</b>One sentence on why it matters.</p></section>
+<!-- COMPONENT: visual slide with a compare visual -->
+<section class="slide info visual" data-kind="visual" data-seconds="35" aria-label="Slide 0">
+<div class="eyebrow">What it looks like</div><h2>The compare component</h2><p class="lede">The lede says what changed for the user.</p><figure class="figure figure-compare"><div class="compare"><div class="before"><b>Before</b><p>Newest products first.</p></div><div class="after"><b>After</b><p>Best match first, typos forgiven.</p></div></div></figure><p class="why"><b>Why it matters</b>One sentence on why it matters.</p></section>
+<!-- COMPONENT: visual slide with a code visual -->
+<section class="slide info visual" data-kind="visual" data-seconds="35" aria-label="Slide 0">
+<div class="eyebrow">What it looks like</div><h2>The code component</h2><p class="lede">The lede says what changed for the user.</p><figure class="figure figure-code"><pre><code>$ search &quot;blu ceramc mug&quot;
+1. Blue ceramic mug, 12 oz</code></pre></figure><p class="why"><b>Why it matters</b>One sentence on why it matters.</p></section>
+</template>
+</main>
+<nav class="nav" aria-label="Slides"><button type="button" id="prev" aria-label="Previous slide">←</button><div class="track" id="track"></div><button type="button" id="next" aria-label="Next slide">→</button></nav>
+<script type="application/json" id="meta">{"deck": "starter", "project": "Catalog search (sample)", "date": "2026-01-01"}</script>
+<script>
+(() => {
+  const meta = JSON.parse(document.getElementById('meta').textContent);
+  const slides = [...document.querySelectorAll('.slide')];
+  const track = document.getElementById('track');
+  const key = 'checkin:' + meta.deck;
+  // Every call is read from its slide's markup, so a hand-built deck needs no separate list to keep in sync.
+  const calls = slides.filter(s => s.dataset.kind === 'decision' || s.dataset.kind === 'question').map(s => ({
+    kind: s.dataset.kind, id: s.dataset.id, question: s.querySelector('h2').textContent, timing: s.dataset.timing,
+    options: [...s.querySelectorAll(s.dataset.kind === 'decision' ? '.option strong' : '.chip')].map(o => o.textContent),
+    recommended: Number(s.dataset.recommended), current: s.dataset.current === undefined ? undefined : Number(s.dataset.current),
+    default: s.dataset.default
+  }));
+  let state = {picks: {}, notes: {}, quiet: false};
+  try { state = Object.assign(state, JSON.parse(localStorage.getItem(key)) || {}); } catch (e) {}
+  const save = () => { try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} };
+  const budget = slides.reduce((t, s) => t + Number(s.dataset.seconds || 0), 0);
+  const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  let current = 0, started = null;
+  const seen = new Set();
+
+  slides.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = s.dataset.kind === 'decision' ? 'call' : s.dataset.kind === 'question' ? 'ask' : '';
+    b.setAttribute('aria-label', 'Slide ' + (i + 1) + (s.dataset.kind === 'decision' ? ', a call for you' : s.dataset.kind === 'question' ? ', a question for you' : ''));
+    b.addEventListener('click', () => show(i));
+    track.appendChild(b);
+  });
+
+  function show(i) {
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    if (current > 0 && started === null) started = Date.now();
+    seen.add(current);
+    slides.forEach((s, n) => s.classList.toggle('active', n === current));
+    [...track.children].forEach((b, n) => { b.classList.toggle('seen', seen.has(n)); b.setAttribute('aria-current', n === current); });
+    document.getElementById('pos').textContent = (current + 1) + ' / ' + slides.length;
+    if (slides[current].dataset.kind === 'close') recap();
+    history.replaceState(null, '', '#' + (current + 1));
+  }
+
+  function pickText(c) {
+    const i = state.picks[c.id];
+    if (c.kind === 'question') {
+      const parts = [i === undefined ? '' : c.options[i], state.notes[c.id] || ''].filter(Boolean);
+      return parts.length ? parts.join('. ') : null;
+    }
+    if (i === undefined) return null;
+    let why = i === c.recommended ? 'matches the recommendation' : 'against the recommendation';
+    if (c.timing === 'made') why += i === c.current ? ', keeps what is in place' : ', reverses what is in place';
+    return c.options[i] + ' (' + why + ')';
+  }
+
+  function recap() {
+    const list = document.getElementById('recap');
+    list.innerHTML = '';
+    calls.forEach(c => {
+      const li = document.createElement('li');
+      const q = document.createElement('span'); q.className = 'q'; q.textContent = c.question;
+      const p = document.createElement('span');
+      const pick = pickText(c);
+      p.className = pick ? 'pick' : 'none';
+      p.textContent = pick || (c.kind === 'question' ? 'No answer yet, so I assume: ' : 'No call yet, so I go with: ') + c.default;
+      li.append(q, p);
+      if (state.notes[c.id] && c.kind !== 'question') { const n = document.createElement('span'); n.className = 'q'; n.textContent = 'Note: ' + state.notes[c.id]; li.append(n); }
+      list.appendChild(li);
+    });
+  }
+
+  function reply() {
+    const lines = ['Check-in calls for ' + meta.project + ' (' + meta.date + ', deck ' + meta.deck + ')'];
+    calls.forEach((c, n) => {
+      lines.push((n + 1) + '. ' + c.question);
+      if (c.kind === 'question') lines.push('   Answer: ' + (pickText(c) || 'no answer, assume: ' + c.default));
+      else lines.push('   Call: ' + (pickText(c) || 'no call, go with your default: ' + c.default));
+      if (state.notes[c.id] && c.kind !== 'question') lines.push('   Note: ' + state.notes[c.id]);
+    });
+    if (state.notes._general) lines.push('Also: ' + state.notes._general);
+    return lines.join('\n');
+  }
+
+  // Decision options and question quick answers share one behavior: click to pick, click again to clear.
+  document.querySelectorAll('.option,.chip').forEach(b => {
+    const id = b.dataset.decision || b.dataset.question, opt = Number(b.dataset.option);
+    const group = '[data-' + (b.dataset.decision ? 'decision' : 'question') + '="' + id + '"]';
+    b.setAttribute('aria-pressed', state.picks[id] === opt);
+    b.addEventListener('click', () => {
+      if (state.picks[id] === opt) delete state.picks[id]; else state.picks[id] = opt;
+      document.querySelectorAll(group).forEach(o => o.setAttribute('aria-pressed', state.picks[id] === Number(o.dataset.option)));
+      save();
+    });
+  });
+  document.querySelectorAll('.slider input').forEach(r => {
+    r.addEventListener('input', () => r.parentElement.style.setProperty('--pos', r.value + '%'));
+  });
+  document.querySelectorAll('textarea[data-note]').forEach(t => {
+    t.value = state.notes[t.dataset.note] || '';
+    t.addEventListener('input', () => { state.notes[t.dataset.note] = t.value.trim(); save(); recap(); });
+  });
+
+  document.getElementById('copy').addEventListener('click', async () => {
+    const text = reply(), done = document.getElementById('copied');
+    try { await navigator.clipboard.writeText(text); done.textContent = 'Copied. Paste it back to me.'; }
+    catch (e) {
+      const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select();
+      try { document.execCommand('copy'); done.textContent = 'Copied. Paste it back to me.'; } catch (err) { done.textContent = 'Copy failed. Select the recap and copy it by hand.'; }
+      t.remove();
+    }
+  });
+
+  const voice = document.getElementById('voice');
+  const setQuiet = q => { state.quiet = q; document.body.classList.toggle('quiet', q); voice.setAttribute('aria-pressed', !q); save(); };
+  voice.addEventListener('click', () => setQuiet(!state.quiet));
+  setQuiet(!!state.quiet);
+
+  document.getElementById('prev').addEventListener('click', () => show(current - 1));
+  document.getElementById('next').addEventListener('click', () => show(current + 1));
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('textarea,input') || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); show(current + 1); }
+    else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(current - 1); }
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+    else if (e.key === 'v' || e.key === 'V') setQuiet(!state.quiet);
+  });
+  let touch = null;
+  document.getElementById('stage').addEventListener('touchstart', e => { touch = e.touches[0]; }, {passive: true});
+  document.getElementById('stage').addEventListener('touchend', e => {
+    if (!touch || e.target.closest('textarea,.option,.chip,.slider')) return;
+    const dx = e.changedTouches[0].clientX - touch.clientX, dy = e.changedTouches[0].clientY - touch.clientY;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) show(current + (dx < 0 ? 1 : -1));
+    touch = null;
+  });
+  setInterval(() => {
+    const s = started === null ? 0 : (Date.now() - started) / 1000;
+    document.getElementById('clock').textContent = fmt(s) + ' / ' + fmt(budget);
+  }, 1000);
+
+  document.querySelectorAll('.line-chart[data-chart]').forEach(drawLine);
+
+  const start = parseInt(location.hash.slice(1), 10);
+  show(Number.isFinite(start) ? start - 1 : 0);
+
+  // A line chart drawn from its data attribute: hairline grid, 2px lines, a label at each line's end,
+  // a tooltip on every point, a legend, and a hidden table for screen readers.
+  function drawLine(box) {
+    const v = JSON.parse(box.dataset.chart), NS = 'http://www.w3.org/2000/svg';
+    const W = 680, H = 240, L = 44, R = 150, T = 14, B = 30, pw = W - L - R, ph = H - T - B, n = v.x.length;
+    const unit = v.unit ? ' ' + v.unit : '';
+    const vals = v.series.flatMap(s => s.values).filter(x => x !== null);
+    let low = Math.min(0, ...vals), high = Math.max(...vals);
+    const raw = (high - low) / 4 || 1, pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map(m => m * pow).find(x => x >= raw);
+    low = Math.floor(low / step) * step; high = Math.ceil(high / step) * step;
+    if (high === low) high = low + step;
+    const fmt = x => String(Math.round(x * 100) / 100);
+    const px = i => L + pw * i / (n - 1), py = x => T + ph * (1 - (x - low) / (high - low));
+    const el = (tag, attrs, text, parent) => {
+      const e = document.createElementNS(NS, tag);
+      Object.entries(attrs).forEach(([k, val]) => e.setAttribute(k, val));
+      if (text !== undefined) e.textContent = text;
+      (parent || svg).appendChild(e);
+      return e;
+    };
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', v.question);
+    for (let t = low; t <= high + step / 2; t += step) {
+      el('line', {class: 'grid', x1: L, x2: L + pw, y1: py(t), y2: py(t)});
+      el('text', {class: 'tick', x: L - 8, y: py(t) + 4, 'text-anchor': 'end'}, fmt(t));
+    }
+    const every = Math.max(1, Math.ceil(n / 6));
+    v.x.forEach((label, i) => { if (i % every === 0 || i === n - 1) el('text', {class: 'tick', x: px(i), y: H - 8, 'text-anchor': 'middle'}, label); });
+    const ends = [];
+    v.series.forEach((line, k) => {
+      const cls = 's' + (k + 1);
+      let run = [];
+      const flush = () => { if (run.length > 1) el('polyline', {class: 'series ' + cls, points: run.join(' ')}); run = []; };
+      line.values.forEach((x, i) => { if (x === null) flush(); else run.push(px(i).toFixed(1) + ',' + py(x).toFixed(1)); });
+      flush();
+      line.values.forEach((x, i) => {
+        if (x === null) return;
+        const g = el('g', {class: 'pt ' + cls});
+        el('circle', {class: 'hit', cx: px(i), cy: py(x), r: 11}, undefined, g);
+        el('circle', {class: 'dot', cx: px(i), cy: py(x), r: 4}, undefined, g);
+        el('title', {}, line.label + ', ' + v.x[i] + ': ' + fmt(x) + unit, g);
+      });
+      const last = line.values.map((x, i) => x === null ? -1 : i).reduce((a, b) => Math.max(a, b));
+      ends.push({y: py(line.values[last]), cls, label: line.label, value: line.values[last]});
+    });
+    // Labels sit at the right edge, nudged apart so they never overlap.
+    ends.sort((a, b) => a.y - b.y).forEach((e, i) => { if (i) e.y = Math.max(e.y, ends[i - 1].y + 30); });
+    ends.forEach(e => {
+      const g = el('g', {class: 'end ' + e.cls});
+      el('rect', {x: L + pw + 10, y: e.y - 11, width: 10, height: 3, rx: 1.5}, undefined, g);
+      el('text', {x: L + pw + 26, y: e.y - 5}, e.label, g);
+      el('text', {class: 'val', x: L + pw + 26, y: e.y + 11}, fmt(e.value) + unit, g);
+    });
+    if (v.series.length > 1) {
+      const legend = document.createElement('p');
+      legend.className = 'legend';
+      v.series.forEach((line, k) => {
+        const item = document.createElement('span'); item.className = 's' + (k + 1);
+        item.append(document.createElement('i'), line.label);
+        legend.append(item);
+      });
+      box.append(legend);
+    }
+    box.append(svg);
+    const wrap = document.createElement('div'), table = document.createElement('table');
+    wrap.className = 'sr-only';
+    table.createCaption().textContent = v.question + (v.unit ? ' (' + v.unit + ')' : '');
+    const head = table.insertRow(); head.insertCell();
+    v.x.forEach(x => { const th = document.createElement('th'); th.textContent = x; head.append(th); });
+    v.series.forEach(line => {
+      const row = table.insertRow(), th = document.createElement('th');
+      th.textContent = line.label; row.append(th);
+      line.values.forEach(x => { row.insertCell().textContent = x === null ? '' : fmt(x); });
+    });
+    wrap.append(table);
+    box.append(wrap);
+  }
+})();
+</script>
+</body>
+</html>

@@ -5,7 +5,8 @@ Every check-in deck is built from the same small set of components, so a deck ma
 - `assets/components/deck.css` is the only stylesheet. Light and dark mode, phone layout and print all live in it.
 - `assets/components/deck.js` is the only script: slide navigation, option picking, the before/after slider, notes, and "Copy my calls".
 - `assets/deck.html` is the page skeleton. The renderer inlines the two files above, so every deck is one offline HTML file.
-- `assets/sample/deck.json` uses most components on a made-up project. Render it when you want to see the look before writing your own deck.
+- `assets/starter.html` is a finished deck with every component, for building by hand (see the last section).
+- `assets/sample/deck.json` is the made-up project the starter is generated from.
 
 Agents never write HTML, CSS or inline styles for a deck. You pick components and fill them with words, numbers and pictures through the deck JSON. The renderer refuses any field it doesn't know, so a style hint or a made-up layout fails loudly instead of quietly producing a different-looking deck.
 
@@ -64,6 +65,12 @@ Every visual takes an optional `caption`.
 
 Colors are tokens on `:root` in the stylesheet, redefined for dark mode. Accent green marks progress and recommendations, amber marks calls, blue marks questions, and the state colors mark point and step states. Chart lines use three validated categorical slots (blue, orange, aqua) in fixed order: the first series is always blue. Don't ask for other colors. If a chart needs more than three series, it needs to be two charts.
 
-## When the renderer can't run
+## Two ways to build, one look
 
-If Python is missing but this folder is present, build the deck by hand from the same parts: copy `assets/deck.html`, paste `deck.css` and `deck.js` in place of `@@CSS@@` and `@@JS@@`, and write each slide with the same markup the renderer emits (render the sample deck elsewhere, or read `render_info`, `render_decision`, `render_question` and `render_visual` in `scripts/render_deck.py`). Fill `@@META@@` with the calls list the script expects. Say in `gaps` that the deck was assembled by hand.
+**With the renderer** (any agent that can run Python 3): write the deck JSON and run `scripts/render_deck.py`. It validates everything and inlines the images. Prefer this whenever it can run.
+
+**By hand** (no Python, or a chat with no tools): copy `assets/starter.html` and edit it. It is the sample deck as the renderer produces it, with the stylesheet and script already inlined and a `COMPONENT` comment above every slide. The visuals the sample doesn't use (gallery, image, flow, compare, code) sit in a `<template>` at the end of the slides, ready to copy out. A note at the top of the file lists what to change. Keep the style and script blocks untouched and change only words, numbers and images. The page script reads each call from the slide's own markup and draws line charts from their `data-chart` JSON, so nothing needs computing except bar widths.
+
+The renderer regenerates the starter with `python3 scripts/render_deck.py --starter`, and a test fails if the two drift apart, so a hand-built deck looks exactly like a rendered one. Say in `gaps` when a deck was built by hand, since nothing validated it.
+
+`assets/sample/deck.json` uses most components on a made-up project. Render it, or open `assets/starter.html`, to see the look.
