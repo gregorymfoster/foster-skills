@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fuzz"
+  short_description: "Drive the app like real users to find bugs and UX problems"
+  default_prompt: "Use $foster-fuzz to run through as many flows, states and realistic uses of this app as you can, find bugs and UI/UX problems, and give me a ranked report with screenshots."

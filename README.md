@@ -11,6 +11,9 @@ Personal agent skills, one directory per skill under `skills/`. The repository i
 - `foster-project-checkin`: a five-minute slide briefing on an AI-run project, with
   status slides and decision slides interleaved so you can make the calls
   while the agent keeps working.
+- `foster-fuzz`: drives an app's real UI like a crowd of realistic users,
+  through every flow and state it can reach, and reports the bugs and UI/UX
+  problems it finds with screenshots and repro steps.
 
 ## Install
 
