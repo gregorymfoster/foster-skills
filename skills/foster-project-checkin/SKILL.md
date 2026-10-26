@@ -22,13 +22,19 @@ Write for a busy executive who just walked in from another meeting. He owns the 
 
 A picture carries a feature faster than a paragraph. Give every feature or result slide a visual, and aim for pictures on at least half the information slides (the renderer warns below that):
 
-- A `gallery` before and after: two or three images side by side with short labels ("Straight from the camera", "Argus", "Your own edit"). This is the strongest slide for anything that changes what the user sees.
+- A before and after. Use a `slider` when you have two screenshots of the same view (he drags a handle across them), or a `gallery` for two or three images side by side with short labels ("Straight from the camera", "Argus", "Your own edit"). This is the strongest slide for anything that changes what the user sees.
 - A real screenshot of the thing working, as an `image` on a visual slide or beside the points of a status slide.
-- A `bars` chart for the one comparison that matters (old way, new way, best possible), titled with a plain question.
+- A chart for the number that matters: `stats` for one or two headline numbers with how they moved, `line` for a trend over the window, `bars` for one comparison (old way, new way, best possible). Title each chart with a plain question.
 
 Get images the cheap way first: recent release screenshots, bench or test outputs already on disk, a quick headless browser run of the UI. A real screenshot or real output beats any diagram you could draw. Show a failure too when there is one. A picture of where the work still falls short is the most honest bad-news slide.
 
 Respect the project's privacy rules for anything Greg looks at. Read project memory for them before choosing images (in Argus, for example: no photos of his ex, so nothing from the Apr 2022 to Apr 2024 window). Look at every image yourself before it goes in, and prefer stock or sample content in app screenshots.
+
+## One look, whatever agent runs it
+
+Greg reads these decks from Claude Code, Codex, Cursor and Claude projects, and they should look like one series. So the look is not yours to design. Like the lessons in Matt Pocock's teach skill, which all link one shared stylesheet and reuse a growing component library, every deck here is built from the components in [components.md](references/components.md): one stylesheet, one script, and a fixed set of slide and visual types. You choose components by the job each slide does and fill them with words, numbers and pictures. You never write HTML, CSS or inline styles, and the renderer refuses fields it doesn't know.
+
+Before your first deck in a session, skim the component table in [components.md](references/components.md). If you want to see the look, render the sample with `python3 <skill-directory>/scripts/render_deck.py --deck <skill-directory>/assets/sample/deck.json --archive <scratch folder>`. When a slide needs something no component does, use the closest one, say what was missing in `gaps`, and suggest the component to Greg. New components are added to this skill, not improvised in a deck.
 
 ## The contract
 
@@ -42,7 +48,7 @@ Gathering is read-only. Do not push, merge, comment, post, or message anyone in 
 
 ## Step 1: Gather
 
-The renderer, template, and deck data guide live next to this file in `scripts/`, `assets/`, and `references/`. If they are missing (for example, when the skill was installed from its instructions alone), get them with `git clone --depth 1 https://github.com/gregorymfoster/foster-skills` into a temporary folder and use `foster-skills/skills/foster-project-checkin` as `<skill-directory>`. The repository is private: in a cloud session, attach it to the session first, then clone. If you still can't reach it, build one self-contained HTML deck by hand to the same contract (images inlined, arrow keys, options you can pick, a note per call, a recap with "Copy my calls") and say so in `gaps`.
+The renderer, template, and deck data guide live next to this file in `scripts/`, `assets/`, and `references/`. If they are missing (for example, when the skill was installed from its instructions alone), get them with `git clone --depth 1 https://github.com/gregorymfoster/foster-skills` into a temporary folder and use `foster-skills/skills/foster-project-checkin` as `<skill-directory>`. The repository is private: in a cloud session, attach it to the session first, then clone. If Python can't run but the folder is there, assemble the deck by hand from the same stylesheet, script and markup, as the last section of [components.md](references/components.md) describes. If you can't reach the folder at all, build one self-contained HTML deck by hand to the same contract (images inlined, arrow keys, options you can pick, a note per call, a recap with "Copy my calls"), keep it as plain as you can, and say so in `gaps`.
 
 Set the window first. Run `python3 <skill-directory>/scripts/render_deck.py --latest <project-id> --archive <archive>` to find the previous check-in. If one exists, the window starts there, and its `deck.json` and `calls.md` tell you what he decided last time. If none exists, use the last seven days, or the whole project if it is younger.
 
@@ -62,17 +68,19 @@ Past decisions are the ones already baked in, often made quietly by you or an ea
 
 Upcoming decisions are forks ahead: what to build next, build versus buy, scope against timeline, quality against speed, and anything that needs his authority. Give each two to four real options, labeled in plain words, each with one sentence on what happens if he picks it. Include "keep as is" or "do nothing" when that is a real choice. Recommend one, explain why in a sentence, and state your default and how reversible it is.
 
+Some things you need from him have no options you can write: which customers matter most, whether a screenshot matches what he saw, what a vague ask meant. Make those question slides, at most three, each with what you will assume if he doesn't answer. Don't turn a real decision into a question to dodge making a recommendation.
+
 Aim for three to five calls total, with at least one of each timing when the evidence supports it. If there is honestly no past decision worth revisiting, say so out loud on a status slide instead of inventing one; the renderer only warns.
 
 ## Step 3: Build the deck
 
-Plan six to nine slides for about five minutes. The renderer adds the cover and the closing recap. A typical arc runs: what it does now (status with a screenshot), the past call that raises (decision), a before and after of the main change (visual), the call it sets up (decision), where it still falls short (visual of the miss), the call that forces (decision), and what you need from him (decision). Place each decision right after the slide that gives its context. The renderer rejects a deck whose first call comes after the third slide, or that runs three information slides in a row.
+Plan six to nine slides for about five minutes. The renderer adds the cover and the closing recap. A typical arc runs: what it does now (status with a screenshot), the past call that raises (decision), a before and after of the main change (visual), the call it sets up (decision), where it still falls short (visual of the miss), the call that forces (decision), and what you need from him (decision). Place each decision right after the slide that gives its context. A question slide can stand in for a decision anywhere in that arc. The renderer rejects a deck whose first call comes after the third slide, or that runs three information slides in a row.
 
 Each slide carries one idea that Greg can absorb in about twenty seconds. Titles are plain-language claims, not topics. The `lede` says what changed for the user. Use two or three short points at most. `why` says why it matters. `say` is what you would say out loud, one or two conversational sentences, and it shows as a voiceover strip. Sources go in `evidence`.
 
 Write in Greg's voice rules for anything a human reads. Mix short sentences with longer ones and never put three of similar length in a row. Do not use em-dashes. Skip delve, tapestry, realm, unleash, unlock, paramount, harness, cutting-edge, revolutionize, and the transitions ultimately, in conclusion, and to summarize. Do not frame anything as "it's not X, it's Y." Use plain, specific words: numbers he can picture, names, dates. If a humanizer skill is available, run it in embedded mode on your slide copy only, keeping facts and option labels intact.
 
-Write the deck JSON described in [the deck data guide](references/deck-data.md) to a temporary work folder, next to the images it uses.
+Write the deck JSON described in [the deck data guide](references/deck-data.md) to a temporary work folder, next to the images it uses. Pick each visual from the table in [components.md](references/components.md).
 
 ## Step 4: Render and deliver
 

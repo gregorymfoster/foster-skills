@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480" viewBox="0 0 800 480" font-family="Helvetica,Arial,sans-serif">
+<rect width="800" height="480" fill="#f4f5f7"/>
+<rect width="800" height="44" fill="#1f2933"/><circle cx="22" cy="22" r="6" fill="#ef6b5b"/><circle cx="42" cy="22" r="6" fill="#f2c14e"/><circle cx="62" cy="22" r="6" fill="#5fb878"/>
+<text x="96" y="27" fill="#cbd2d9" font-size="14">Catalog · Staff tools</text>
+<rect x="32" y="64" width="736" height="44" rx="8" fill="#fff" stroke="#cfd6dd"/><text x="52" y="92" fill="#1f2933" font-size="17">blue ceramic mug</text>
+<text x="32" y="140" fill="#52606d" font-size="13">412 results · newest first</text>
+<rect x="32" y="156" width="736" height="56" rx="8" fill="#fff" stroke="#e1e5ea" stroke-width="1"/>
+<rect x="46" y="166" width="36" height="36" rx="6" fill="#d9dde2"/>
+<text x="96" y="181" fill="#7b8794" font-size="16" font-weight="400">Gift card, $25</text>
+<text x="96" y="200" fill="#7b8794" font-size="12">Added today</text>
+<rect x="32" y="220" width="736" height="56" rx="8" fill="#fff" stroke="#e1e5ea" stroke-width="1"/>
+<rect x="46" y="230" width="36" height="36" rx="6" fill="#d9dde2"/>
+<text x="96" y="245" fill="#7b8794" font-size="16" font-weight="400">Tea towel set</text>
+<text x="96" y="264" fill="#7b8794" font-size="12">Added yesterday</text>
+<rect x="32" y="284" width="736" height="56" rx="8" fill="#fff" stroke="#e1e5ea" stroke-width="1"/>
+<rect x="46" y="294" width="36" height="36" rx="6" fill="#d9dde2"/>
+<text x="96" y="309" fill="#7b8794" font-size="16" font-weight="400">Red ceramic bowl</text>
+<text x="96" y="328" fill="#7b8794" font-size="12">Added Oct 20</text>
+<rect x="32" y="348" width="736" height="56" rx="8" fill="#fff" stroke="#e1e5ea" stroke-width="1"/>
+<rect x="46" y="358" width="36" height="36" rx="6" fill="#d9dde2"/>
+<text x="96" y="373" fill="#7b8794" font-size="16" font-weight="400">Blue enamel camping cup</text>
+<text x="96" y="392" fill="#7b8794" font-size="12">Added Oct 18</text>
+<rect x="32" y="412" width="736" height="56" rx="8" fill="#fff" stroke="#e1e5ea" stroke-width="1"/>
+<rect x="46" y="422" width="36" height="36" rx="6" fill="#7aa7d9"/>
+<text x="96" y="437" fill="#1f2933" font-size="16" font-weight="400">Blue ceramic mug, 12 oz</text>
+<text x="96" y="456" fill="#7b8794" font-size="12">Added Mar 3</text>
+</svg>

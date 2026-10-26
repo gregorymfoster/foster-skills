@@ -149,6 +149,85 @@ class DeckTests(unittest.TestCase):
         self.assertTrue(any('have a picture' in w for w in warnings))
         self.assertTrue(any('why it matters' in w for w in warnings))
 
+    def test_unknown_fields_are_refused(self):
+        for mutate in (lambda d: d.update(style='dark'), lambda d: d['slides'][0].update(html='<b>x</b>'),
+                       lambda d: d['slides'][2]['visual'].update(color='red'), lambda d: d['slides'][1]['options'][0].update(icon='x')):
+            data = deck()
+            mutate(data)
+            with self.assertRaisesRegex(ValueError, 'does not know'):
+                r.validate(data)
+
+    def test_archived_deck_still_validates(self):
+        data, _ = r.validate(deck())
+        data.update(schema_version=1, deck_id='d1', created_at='2026-10-24T00:00:00', skill_version='1.1.0')
+        r.validate(json.loads(json.dumps(data)))
+
+    def test_question_slides_count_as_weighing_in(self):
+        question = dict(kind='question', id='who', question='Which store matters most?', context='Two stores asked.', suggestions=['North', 'South'], default='I treat them the same.')
+        data = deck()
+        data['slides'] = [status('a'), status('b'), question, status('c'), decision()]
+        data, _ = r.validate(data)
+        self.assertEqual(data['seconds'], 20 + 35 + 35 + 40 + 35 + 50 + 25)
+        data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
+        page = r.page(data)
+        self.assertIn('Question 1', page)
+        self.assertIn('class="chip"', page)
+        self.assertIn('1 call and 1 question for you', page)
+        meta = json.loads(page.split('<script type="application/json" id="meta">')[1].split('</script>')[0])
+        self.assertEqual(meta['calls'][0], {'kind': 'question', 'id': 'who', 'question': 'Which store matters most?', 'options': ['North', 'South'], 'default': 'I treat them the same.'})
+        data = deck()
+        data['slides'] = [status('a'), question, status('b')]
+        r.validate(data)
+        data['slides'] = [status('a'), dict(question, id='a'), dict(question, id='b'), dict(question, id='c'), dict(question, id='d')]
+        with self.assertRaisesRegex(ValueError, 'at most 3 open questions'):
+            r.validate(data)
+        data['slides'] = [status('a'), dict(question, suggestions=['x' * 61]), status('b')]
+        with self.assertRaisesRegex(ValueError, 'suggestions'):
+            r.validate(data)
+        data['slides'] = [status('a'), dict(question, id='db'), decision('db')]
+        with self.assertRaisesRegex(ValueError, 'unique'):
+            r.validate(data)
+
+    def test_line_stats_and_slider_render(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in ('a.png', 'b.png'):
+                (Path(tmp) / name).write_bytes(PNG)
+            data = deck()
+            data['slides'][0]['visual'] = dict(type='stats', stats=[dict(value='6 s', label='to find a product', change='down from 40 s', tone='good')])
+            data['slides'][2]['visual'] = dict(type='line', question='Seconds to find a product', unit='s', x=['W1', 'W2', 'W3'], series=[dict(label='New', values=[30, None, 6]), dict(label='Old', values=[40, 41, 40])])
+            data['slides'].append(dict(kind='visual', title='Before and after', lede='Drag to compare.', visual=dict(type='slider', before=dict(src='a.png', alt='Old', label='Before'), after=dict(src='b.png', alt='New', label='After'))))
+            data, _ = r.validate(data, Path(tmp))
+            data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
+            page = r.page(data)
+            self.assertIn('class="stat tone-good"', page)
+            self.assertIn('<svg viewBox', page)
+            self.assertEqual(page.count('<polyline class="series s1"'), 0)  # a gap leaves no segment of two points
+            self.assertEqual(page.count('<polyline class="series s2"'), 1)
+            self.assertIn('<title>New, W3: 6 s</title>', page)
+            self.assertIn('class="slider"', page)
+            self.assertIn('data:image/png;base64,', page)
+            bad = deck()
+            bad['slides'][2]['visual'] = dict(type='line', question='q', x=['a', 'b'], series=[dict(label='x', values=[1])])
+            with self.assertRaisesRegex(ValueError, 'one number'):
+                r.validate(bad)
+            bad['slides'][2]['visual'] = dict(type='line', question='q', x=['a', 'b'], series=[dict(label=str(i), values=[1, 2]) for i in range(4)])
+            with self.assertRaisesRegex(ValueError, '1 to 3 series'):
+                r.validate(bad)
+            bad['slides'][2]['visual'] = dict(type='stats', stats=[dict(value='1', label='x', tone='great')])
+            with self.assertRaisesRegex(ValueError, 'tone'):
+                r.validate(bad)
+
+    def test_sample_deck_renders_clean_with_shared_components(self):
+        sample = SCRIPT.parent.parent / 'assets' / 'sample' / 'deck.json'
+        data, warnings = r.validate(json.loads(sample.read_text()), sample.parent)
+        self.assertEqual(warnings, [])
+        data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
+        page = r.page(data)
+        css = (SCRIPT.parent.parent / 'assets' / 'components' / 'deck.css').read_text()
+        self.assertIn(css, page)
+        self.assertNotIn('@@', page)
+
+
     def test_cli_archives_each_deck_and_finds_latest(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
