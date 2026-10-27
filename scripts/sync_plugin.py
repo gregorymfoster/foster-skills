@@ -30,6 +30,20 @@ def outputs(plugin):
                 'category': 'Productivity',
             }],
         },
+        # Cursor. Also readable by a Cursor team marketplace's Import from Repo.
+        '.cursor-plugin/marketplace.json': {
+            'name': MARKETPLACE,
+            'owner': plugin['author'],
+            'metadata': {'description': plugin['description']},
+            'plugins': [dict(entry, source='.')],
+        },
+        # Grok Build (grok plugin marketplace add).
+        '.grok-plugin/marketplace.json': {
+            'name': MARKETPLACE,
+            'description': plugin['description'],
+            'owner': plugin['author'],
+            'plugins': [dict(entry, author=plugin['author'], category='productivity', source='./')],
+        },
     }
 
 

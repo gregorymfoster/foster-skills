@@ -1,0 +1,17 @@
+{
+  "name": "foster-skills",
+  "owner": {
+    "name": "Greg Foster"
+  },
+  "metadata": {
+    "description": "Personal agent skills: research posts, structure-first draft reviews, five-minute project check-ins, and fuzz testing apps through their real UI."
+  },
+  "plugins": [
+    {
+      "name": "foster-skills",
+      "description": "Personal agent skills: research posts, structure-first draft reviews, five-minute project check-ins, and fuzz testing apps through their real UI.",
+      "version": "2.3.1",
+      "source": "."
+    }
+  ]
+}

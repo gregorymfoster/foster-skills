@@ -1,6 +1,6 @@
 # foster-skills
 
-Personal agent skills, one directory per skill under `skills/`. The repository is also a plugin, so Claude Code, Codex, ChatGPT, and Cursor can each install all of them at once with their scripts included.
+Personal agent skills, one directory per skill under `skills/`. The repository is also a plugin, so Claude Code, Codex, ChatGPT, Cursor, and Grok Build can each install all of them at once with their scripts included.
 
 ## Skills
 
@@ -37,16 +37,27 @@ Once the marketplace is added, the ChatGPT desktop app lists the plugin in its P
 
 **Cursor**
 
+For yourself, link the repo into Cursor's local plugins folder:
+
 ```bash
 mkdir -p ~/.cursor/plugins/local
 ln -s "$(pwd)" ~/.cursor/plugins/local/foster-skills
 ```
 
-Then run **Developer: Reload Window**. You can also symlink one skill at a time into `~/.cursor/skills/` or `~/.codex/skills/`:
+Then run **Developer: Reload Window**. On a Teams or Enterprise plan, an admin can instead add the repo under **Dashboard → Plugins & MCPs → Add Marketplace → Import from Repo**, which reads `.cursor-plugin/marketplace.json`. You can also symlink one skill at a time into `~/.cursor/skills/` or `~/.codex/skills/`:
 
 ```bash
 ln -s "$(pwd)/skills/foster-research-paper" ~/.cursor/skills/foster-research-paper
 ```
+
+**Grok Build**
+
+```bash
+grok plugin marketplace add gregorymfoster/foster-skills
+grok plugin install foster-skills@foster-skills
+```
+
+Pull changes later with `grok plugin marketplace update foster-skills`. Grok also picks up skills from Claude Code installs, so if the Claude Code plugin is already installed you may not need this.
 
 **claude.ai**
 
@@ -54,7 +65,7 @@ claude.ai doesn't install plugins. Add skills one at a time, from a skill card i
 
 ## Plugin files
 
-`plugin.json` at the root is the single source of truth: name, version, description, author. Codex, ChatGPT, and Cursor read it directly, and Claude Code reads it too. Two marketplace files are generated from it, `.claude-plugin/marketplace.json` for Claude Code and `.agents/plugins/marketplace.json` for Codex and ChatGPT. Don't edit them by hand. After changing `plugin.json` (bump `version` when skills change), run:
+`plugin.json` at the root is the single source of truth: name, version, description, author. Codex, ChatGPT, Cursor, and Grok read it directly, and Claude Code reads it too. Four marketplace files are generated from it: `.claude-plugin/marketplace.json` for Claude Code, `.agents/plugins/marketplace.json` for Codex and ChatGPT, `.cursor-plugin/marketplace.json` for Cursor team marketplaces, and `.grok-plugin/marketplace.json` for Grok Build. Don't edit them by hand. After changing `plugin.json` (bump `version` when skills change), run:
 
 ```bash
 python3 scripts/sync_plugin.py

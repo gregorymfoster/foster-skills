@@ -27,5 +27,14 @@ class PluginTests(unittest.TestCase):
         for field in ('name', 'displayName', 'version', 'description', 'author'):
             self.assertIn(field, plugin)
 
+    def test_every_marketplace_lists_the_root_plugin(self):
+        plugin = json.loads((ROOT / 'plugin.json').read_text(encoding='utf-8'))
+        for path in ('.claude-plugin', '.cursor-plugin', '.grok-plugin'):
+            market = json.loads((ROOT / path / 'marketplace.json').read_text(encoding='utf-8'))
+            self.assertEqual(market['owner'], plugin['author'], path)
+            (entry,) = market['plugins']
+            self.assertEqual(entry['name'], plugin['name'], path)
+            self.assertIn(entry['source'], ('.', './'), path)
+
 
 if __name__ == '__main__': unittest.main()

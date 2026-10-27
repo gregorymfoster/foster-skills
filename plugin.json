@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "foster-skills",
   "displayName": "Foster Skills",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Personal agent skills: research posts, structure-first draft reviews, five-minute project check-ins, and fuzz testing apps through their real UI.",
   "author": {
     "name": "Greg Foster"
