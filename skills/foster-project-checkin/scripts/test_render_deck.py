@@ -27,8 +27,11 @@ def decision(identifier='db', timing='upcoming'):
     return d
 
 
+NO_DATA = dict(status='no-data', goal='Staff find a product in under 10 seconds', searched=['Connected analytics tools', 'Event calls in the code'])
+
+
 def deck():
-    return dict(project='Search', project_id='search', window='Since Oct 17', headline='Search works for staff.', next=['Ranking tweaks'], slides=[status(), decision('keep', 'made'), dict(kind='visual', title='The results page', lede='It looks like this.', visual=dict(type='flow', steps=[dict(label='Query'), dict(label='Rank', state='moving')])), decision()])
+    return dict(project='Search', project_id='search', window='Since Oct 17', headline='Search works for staff.', next=['Ranking tweaks'], usage=copy.deepcopy(NO_DATA), slides=[status(), decision('keep', 'made'), dict(kind='visual', title='The results page', lede='It looks like this.', visual=dict(type='flow', steps=[dict(label='Query'), dict(label='Rank', state='moving')])), decision()])
 
 
 class DeckTests(unittest.TestCase):
@@ -219,6 +222,93 @@ class DeckTests(unittest.TestCase):
             bad['slides'][2]['visual'] = dict(type='stats', stats=[dict(value='1', label='x', tone='great')])
             with self.assertRaisesRegex(ValueError, 'tone'):
                 r.validate(bad)
+
+    def usage_deck(self):
+        data = deck()
+        data['usage'] = dict(status='at-risk', goal='150 stores searching weekly by Dec 1', sources=[dict(name='Search event log', as_of='Oct 26')])
+        data['slides'][2] = dict(kind='usage', data_from='search event log, Oct 1 to 26', title='112 stores search every week', lede='Growth flattened.', why='The gap is stores that never tried it.',
+                                 points=[dict(text='Most stores come back', state='up'), dict(text='Two stores never report', state='data-gap')],
+                                 visual=dict(type='goal', metric='Stores searching weekly', current=112, target=150, projected=130, by='Dec 1', status='at-risk'))
+        return data
+
+    def test_usage_slide_goal_and_cover_line_render(self):
+        data, warnings = r.validate(self.usage_deck())
+        self.assertFalse(any('goal' in w or 'usage' in w for w in warnings))
+        self.assertEqual(data['seconds'], 20 + 35 + 50 + 40 + 50 + 25)
+        data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
+        page = r.page(data)
+        self.assertIn('What the usage data says · search event log, Oct 1 to 26', page)
+        self.assertIn('<i>data gap</i>', page)
+        self.assertIn('class="goal goal-at-risk"', page)
+        self.assertIn('width:74.7%', page)
+        self.assertIn('left:86.7%', page)
+        self.assertIn('112 of 150 by Dec 1, heading for 130', page)
+        self.assertIn('<p class="usage-line usage-line-at-risk"><i>At risk</i><span>Goal: 150 stores searching weekly by Dec 1</span>', page)
+        self.assertIn('Search event log (through Oct 26)', page)
+
+    def test_goal_shape_is_enforced(self):
+        for change, message in ((dict(status='fine'), 'status'), (dict(target=0), 'differ'), (dict(current='112'), 'current'), (dict(projected='x'), 'projected')):
+            data = self.usage_deck()
+            data['slides'][2]['visual'].update(change)
+            with self.assertRaisesRegex(ValueError, message):
+                r.validate(data)
+        data = self.usage_deck()
+        data['slides'][2]['visual'].update(current=5, target=1, baseline=10, unit='%')
+        data, _ = r.validate(data)
+        self.assertIn('5% of 1%', r.render_goal(data['slides'][2]['visual']))
+        self.assertEqual(r.num(1250000), '1,250,000')
+        self.assertEqual(r.num(0.125), '0.12')
+
+    def test_usage_step_cannot_be_skipped_or_faked(self):
+        data = deck()
+        data.pop('usage')
+        with self.assertRaisesRegex(ValueError, 'usage data step'):
+            r.validate(data)
+        data = self.usage_deck()
+        data['slides'][2]['kind'] = 'status'
+        data['slides'][2].pop('data_from')
+        data['slides'][2]['points'] = []
+        with self.assertRaisesRegex(ValueError, 'give it a usage slide'):
+            r.validate(data)
+        data = self.usage_deck()
+        data['usage'] = copy.deepcopy(NO_DATA)
+        with self.assertRaisesRegex(ValueError, 'needs usage data'):
+            r.validate(data)
+        for usage, message in ((dict(NO_DATA, searched=[]), 'where you looked'), (dict(NO_DATA, sources=[dict(name='x')]), 'no sources'),
+                               (dict(status='on-track', sources=[dict(name='Log')]), 'goal in words'), (dict(status='on-track', goal='g'), 'needs sources'),
+                               (dict(status='booming', goal='g'), 'status must be'), (dict(NO_DATA, sources=[dict(name='x', rows=3)]), 'does not know')):
+            data = deck()
+            data['usage'] = usage
+            with self.assertRaisesRegex(ValueError, message):
+                r.validate(data)
+        data = self.usage_deck()
+        data['slides'][2]['points'][0]['state'] = 'done'
+        with self.assertRaisesRegex(ValueError, 'point state'):
+            r.validate(data)
+
+    def test_no_goal_means_asking_for_one(self):
+        question = dict(kind='question', id='goal', question='Which number tells you this works?', context='Nothing sets a target yet.', suggestions=['Weekly stores', 'Time to find'], default='I track weekly stores.')
+        data = deck()
+        data['usage'] = dict(status='no-data', searched=['Connected tools'])
+        with self.assertRaisesRegex(ValueError, 'no goal yet'):
+            r.validate(data)
+        data['slides'][3] = question
+        data, _ = r.validate(data)
+        data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
+        self.assertIn('<i>No usage data</i><span class="src">Nothing measures this yet. Looked in: Connected tools</span>', r.page(data))
+        data = self.usage_deck()
+        data['usage'] = dict(status='no-goal', sources=[dict(name='Log')])
+        data['slides'][2]['visual'] = dict(type='bars', question='Stores per week', bars=[dict(label='Oct', value=112), dict(label='Sep', value=80)])
+        data['slides'][3] = question
+        _, warnings = r.validate(data)
+        self.assertFalse(any('goal' in w for w in warnings))
+        data['usage']['goal'] = 'g'
+        with self.assertRaisesRegex(ValueError, 'no goal is agreed'):
+            r.validate(data)
+        data = self.usage_deck()
+        data['slides'][2]['visual'] = dict(type='stats', stats=[dict(value='112', label='stores')])
+        _, warnings = r.validate(data)
+        self.assertTrue(any('goal visual' in w for w in warnings))
 
     def test_sample_deck_renders_clean_with_shared_components(self):
         sample = SCRIPT.parent.parent / 'assets' / 'sample' / 'deck.json'

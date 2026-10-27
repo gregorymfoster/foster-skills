@@ -1,11 +1,11 @@
 ---
 name: foster-project-checkin
-description: Brief Greg on an AI-run project as an IC engineer briefing a director of engineering. Gathers recent activity (git, PRs, threads, memory, plans) and renders a five-minute HTML slide deck that alternates status slides with decision slides, covering past calls he may want to reverse and upcoming calls that need him, each with options, a recommendation, and a default. Use when he says "check in", "brief me", "where are we", or "catch me up" in a Cursor workspace, Claude Code repo, Claude project, or any long-running work stream.
+description: Brief Greg on an AI-run project as an IC engineer briefing a director of engineering. Gathers recent activity (git, PRs, threads, memory, plans), digs into the product's usage data (adoption, surprises, data problems, progress toward the goal), and renders a five-minute slide deck as one HTML file, never a canvas or PowerPoint, that alternates status slides with decision slides, covering past calls he may want to reverse and upcoming calls that need him, each with options, a recommendation, and a default. Use when he says "check in", "brief me", "where are we", or "catch me up" in a Cursor workspace, Claude Code repo, Claude project, or any long-running work stream.
 ---
 
 # Project Check-in
 
-Greg is dropping into a project you have been working on, and he is playing director of engineering. You are the IC who did the work. Give him a five-minute slide briefing: what happened, what it adds up to, what it looks like, and the calls that are his to make. Status and decisions alternate so he weighs in while the context is fresh, not in a pile at the end. Then go back to work.
+Greg is dropping into a project you have been working on, and he is playing director of engineering. You are the IC who did the work. Give him a five-minute slide briefing: what happened, what it adds up to, what it looks like, whether anyone is using it, and the calls that are his to make. Status and decisions alternate so he weighs in while the context is fresh, not in a pile at the end. Then go back to work.
 
 ## Who you are writing for
 
@@ -36,6 +36,10 @@ Greg reads these decks from Claude Code, Codex, Cursor and Claude projects, and 
 
 Before your first deck in a session, skim the component table in [components.md](references/components.md). If you want to see the look, open `assets/starter.html`, a finished deck that uses every component. When a slide needs something no component does, use the closest one, say what was missing in `gaps`, and suggest the component to Greg. New components are added to this skill, not improvised in a deck.
 
+## One HTML file, nothing else
+
+The deliverable is always one file, `deck.html`, made by the renderer or by hand from `assets/starter.html`. Don't make anything alongside it or instead of it: no Cursor canvas, no PowerPoint or .pptx, no Keynote or Google Slides, no Markdown or Word summary, no separate check-in document. That holds even when a slide, document or canvas tool is available and looks like a better fit, and in every app (Cursor, Claude Code, Codex, ChatGPT, Claude projects). (Greg, 2026-10-27, after a Cursor run produced a canvas, a check-in document and a PowerPoint deck but no HTML page.) Publishing that same `deck.html` as an Artifact in Claude counts as delivering it. The archive's `deck.json` and `calls.md` are records, not deliverables.
+
 ## The contract
 
 He owns direction, scope, risk, and spend. You own execution. A call belongs in the deck only if its answer changes the goal, the scope, the timeline, the risk, or the cost, or if he would be surprised to learn later that you made it alone. Naming, internal refactors, and anything with one sensible answer stay off the slides; decide those yourself.
@@ -56,11 +60,17 @@ Then read whatever this environment has, quickly. Spend a few minutes of tool ca
 
 The code tells you what actually changed: `git log --since=<date> --no-merges --stat` on the default branch and active branches, branches ahead of the default, uncommitted work, and CI status. PRs and issues tell you what is waiting on whom: use `gh` or the GitHub MCP tools for merged and open PRs, unanswered review comments, failing checks, and new issues. The conversation tells you why: in a Claude project, read the project chat and the thread list, paying attention to blocked and review-ready threads; in Cursor or Claude Code, use the current session and any plan or progress files in the workspace. Memory and plans tell you what was intended: `CLAUDE.md`, `AGENTS.md`, `.cursor/rules`, memory folders and `MEMORY.md` indexes, ADRs or decision logs, specs, roadmaps, TODO files, release notes.
 
-Collect pictures while you gather (see Show, don't tell), not as an afterthought.
+Collect pictures while you gather (see Show, don't tell), not as an afterthought. Note any analytics tools, data folders or tracking code you pass on the way; the next step needs them.
 
 Keep a private evidence list as you go, one line per claim with its source. You will need it for the `evidence` lists and for any follow-up question.
 
-## Step 2: Find the story and the calls
+## Step 2: Dig into the usage data
+
+Before writing the story, find out whether anyone is using the thing and whether the work is moving the number it was meant to move. Work through [usage-data.md](references/usage-data.md): pin down the goal first, then find whatever data this environment can reach (analytics connectors such as Amplitude, BigQuery, Snowflake, Hex or Datadog; signed-in command-line tools; the product's read-only database; logs; tracking code and saved queries in the repo; proxy signals when there is no telemetry), and read it the way a data scientist would. You come out with four things: adoption, the one or two findings that stand out, the problems with the data or the blockers to measuring, and where things stand against the goal.
+
+This step never blocks the check-in. If nothing measures the project, say so on the cover (`usage.status` of `no-data`, with where you looked), ask for the goal with a question slide if there isn't one, and offer a decision on how to start measuring. Never fill the gap with a made-up or unlabeled proxy number.
+
+## Step 3: Find the story and the calls
 
 Write the headline first: the net effect in one plain sentence that Greg could repeat to his own boss without explaining a single word. Then pick two to four status points that support or complicate it. Include what slipped, what you dropped, and what is fragile.
 
@@ -72,9 +82,9 @@ Some things you need from him have no options you can write: which customers mat
 
 Aim for three to five calls total, with at least one of each timing when the evidence supports it. If there is honestly no past decision worth revisiting, say so out loud on a status slide instead of inventing one; the renderer only warns.
 
-## Step 3: Build the deck
+## Step 4: Build the deck
 
-Plan six to nine slides for about five minutes. The renderer adds the cover and the closing recap. A typical arc runs: what it does now (status with a screenshot), the past call that raises (decision), a before and after of the main change (visual), the call it sets up (decision), where it still falls short (visual of the miss), the call that forces (decision), and what you need from him (decision). Place each decision right after the slide that gives its context. A question slide can stand in for a decision anywhere in that arc. The renderer rejects a deck whose first call comes after the third slide, or that runs three information slides in a row.
+Plan six to nine slides for about five minutes. The renderer adds the cover and the closing recap. A typical arc runs: what it does now (status with a screenshot), the past call that raises (decision), a before and after of the main change (visual), the call it sets up (decision), what the usage data says (usage slide with the goal tracker), the call that raises (decision or question), and what you need from him (decision). Every deck carries the `usage` summary for the cover, and a usage slide whenever there is data. Place each decision right after the slide that gives its context. A question slide can stand in for a decision anywhere in that arc. The renderer rejects a deck whose first call comes after the third slide, or that runs three information slides in a row.
 
 Each slide carries one idea that Greg can absorb in about twenty seconds. Titles are plain-language claims, not topics. The `lede` says what changed for the user. Use two or three short points at most. `why` says why it matters. `say` is what you would say out loud, one or two conversational sentences, and it shows as a voiceover strip. Sources go in `evidence`.
 
@@ -82,7 +92,7 @@ Write in Greg's voice rules for anything a human reads. Mix short sentences with
 
 Write the deck JSON described in [the deck data guide](references/deck-data.md) to a temporary work folder, next to the images it uses. Pick each visual from the table in [components.md](references/components.md).
 
-## Step 4: Render and deliver
+## Step 5: Render and deliver
 
 ```sh
 python3 <skill-directory>/scripts/render_deck.py --deck <deck.json> --archive <archive>
@@ -92,15 +102,15 @@ The default archive is `~/Documents/Project Check-ins`. Use `--archive` when hom
 
 Look at the rendered deck before you send it, at desktop and phone widths and in light and dark mode. Check that every picture loads and reads at its size, that before-and-after rows stack on a phone, and that nothing scrolls sideways. Make one pass of fixes, then ship.
 
-Deliver it the way the host allows. If an Artifact or page-publishing tool is available (Claude), publish `deck.html` (it is self-contained) and link it. Otherwise (Cursor, Codex, ChatGPT and the rest) open it in the browser if you can, and always end your message with the one line the renderer prints, "Open the deck in a browser: file://…", so he can click straight to it. A hand-built deck gets the same line with its own path. If the host has native decision cards, also post the single most time-sensitive call as one card (a one-way door if there is one), so he can answer from a phone. If he answers the card, record it and drop that call from the deck.
+Deliver `deck.html` and only `deck.html` (see One HTML file, nothing else). If an Artifact or page-publishing tool is available (Claude), publish `deck.html` (it is self-contained) and link it. Otherwise (Cursor, Codex, ChatGPT and the rest) write it to disk, open it in the browser if you can, and always end your message with the one line the renderer prints, "Open the deck in a browser: file://…", so he can click straight to it. A hand-built deck gets the same line with its own path. If the host has native decision cards, also post the single most time-sensitive call as one card (a one-way door if there is one), so he can answer from a phone. If he answers the card, record it and drop that call from the deck.
 
 Keep the chat message to two or three plain sentences: the headline, how many calls are waiting, which one is most urgent, and what you are continuing on in the meantime. The deck is the deliverable.
 
 When rendering behavior changes, check the deck in a browser at desktop and phone widths and in dark mode. Step through with the arrow keys, pick options, write a note, and confirm "Copy my calls" produces the reply text.
 
-## Step 5: Apply the calls and keep working
+## Step 6: Apply the calls and keep working
 
-Greg answers by pasting the text from "Copy my calls", by tapping a card, or in his own words. Each call he makes is his approval for that path, and it covers what the option described. Write his calls to `calls.md` in the deck's archive folder, then record each decision wherever the project keeps decisions (project memory, a decision log, an ADR), with the date and his reason if he gave one. A note that states a standing rule ("always fix tests, you don't have to ask") goes into the project's rules file too. Hand each call to whoever owns that work, change the plan to match, and say in one line what you changed.
+Greg answers by pasting the text from "Copy my calls", by tapping a card, or in his own words. Each call he makes is his approval for that path, and it covers what the option described. Write his calls to `calls.md` in the deck's archive folder, then record each decision wherever the project keeps decisions (project memory, a decision log, an ADR), with the date and his reason if he gave one. A goal he names in answer to a question goes into project memory with the usage recipe, so the next check-in tracks it. A note that states a standing rule ("always fix tests, you don't have to ask") goes into the project's rules file too. Hand each call to whoever owns that work, change the plan to match, and say in one line what you changed.
 
 If he never answers, follow the defaults for cheap and costly calls and carry one-way calls to the next check-in as still open. The next deck opens with follow-through: what he decided, and what happened because of it.
 

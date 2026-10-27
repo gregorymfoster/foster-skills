@@ -12,14 +12,21 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-VERSION = '2.0.0'
-KINDS = ('status', 'visual', 'decision', 'question')
+VERSION = '2.1.0'
+KINDS = ('status', 'visual', 'usage', 'decision', 'question')
+INFO_KINDS = ('status', 'visual', 'usage')
 TIMINGS = ('made', 'upcoming')
 REVERSIBILITY = ('cheap', 'costly', 'one-way')
 STATES = ('done', 'moving', 'blocked', 'dropped', 'risk')
-VISUALS = ('image', 'gallery', 'slider', 'bars', 'line', 'stats', 'flow', 'compare', 'code')
+# What a finding on a usage slide is: a metric rising, falling or flat, a surprise, a hole in the data, or a blocker.
+USAGE_STATES = ('up', 'down', 'flat', 'surprise', 'data-gap', 'blocked')
+# Where the project stands against its goal. The first four need data and a goal; the last two are the honest fallbacks.
+GOAL_STATUS = ('on-track', 'at-risk', 'off-track', 'too-early')
+USAGE_STATUS = GOAL_STATUS + ('no-goal', 'no-data')
+STATUS_LABELS = {'on-track': 'On track', 'at-risk': 'At risk', 'off-track': 'Off track', 'too-early': 'Too early to tell', 'no-goal': 'No goal set', 'no-data': 'No usage data'}
+VISUALS = ('image', 'gallery', 'slider', 'bars', 'line', 'stats', 'goal', 'flow', 'compare', 'code')
 TONES = ('good', 'bad', 'neutral')
-SECONDS = {'cover': 20, 'status': 35, 'visual': 35, 'decision': 50, 'question': 40, 'close': 25}
+SECONDS = {'cover': 20, 'status': 35, 'visual': 35, 'usage': 40, 'decision': 50, 'question': 40, 'close': 25}
 MAX_DECISIONS = 5
 MAX_QUESTIONS = 3
 SOFT_LIMIT = 330
@@ -31,10 +38,13 @@ SLUG = r'[a-z0-9]+(?:-[a-z0-9]+)*'
 # and a misspelled field fails loudly instead of silently vanishing from the deck.
 INFO_FIELDS = {'kind', 'title', 'lede', 'body', 'why', 'say', 'evidence', 'seconds', 'visual'}
 FIELDS = {
-    'deck': {'project', 'project_id', 'window', 'what_it_is', 'headline', 'hero', 'metrics', 'gaps', 'slides', 'next',
+    'deck': {'project', 'project_id', 'window', 'what_it_is', 'headline', 'hero', 'metrics', 'usage', 'gaps', 'slides', 'next',
              'schema_version', 'deck_id', 'created_at', 'skill_version', 'seconds'},
+    'usage_summary': {'status', 'goal', 'sources', 'searched'},
+    'source': {'name', 'as_of', 'url'},
     'status': INFO_FIELDS | {'points'},
     'visual': INFO_FIELDS,
+    'usage': INFO_FIELDS | {'points', 'data_from'},
     'decision': {'kind', 'id', 'timing', 'question', 'context', 'options', 'current', 'recommended', 'recommendation', 'default',
                  'reversibility', 'reversibility_note', 'needed_by', 'evidence', 'say', 'seconds'},
     'question': {'kind', 'id', 'question', 'context', 'suggestions', 'default', 'needed_by', 'visual', 'evidence', 'say', 'seconds'},
@@ -44,6 +54,7 @@ FIELDS = {
     'bars': {'type', 'question', 'unit', 'bars', 'caption'},
     'line': {'type', 'question', 'unit', 'x', 'series', 'caption'},
     'stats': {'type', 'stats', 'caption'},
+    'goal': {'type', 'metric', 'current', 'target', 'baseline', 'projected', 'unit', 'by', 'status', 'caption'},
     'flow': {'type', 'steps', 'caption'},
     'compare': {'type', 'before', 'after', 'caption'},
     'code': {'type', 'text', 'caption'},
@@ -86,6 +97,17 @@ def known(obj, shape, label):
 
 def number(value):
     return type(value) in (int, float)
+
+
+def num(value):
+    """A number as a person reads it: thousands separated, no trailing zeros, never scientific notation."""
+    if float(value).is_integer():
+        return f'{int(value):,}'
+    return f'{value:,.2f}'.rstrip('0').rstrip('.')
+
+
+def with_unit(value, unit):
+    return num(value) + ('' if not unit else unit if unit.startswith('%') else ' ' + unit)
 
 
 def check_url(url, label):
@@ -189,6 +211,17 @@ def validate_visual(visual, label, base):
             text(stat, 'change', f'{label} stat', required=False)
             if stat.get('tone', 'neutral') not in TONES:
                 raise ValueError(f'{label} stat tone must be one of {TONES}.')
+    elif kind == 'goal':
+        text(visual, 'metric', label)
+        for field in ('unit', 'by'):
+            text(visual, field, label, required=False)
+        for field in ('current', 'target', 'baseline', 'projected'):
+            if field in visual and not number(visual[field]) or field in ('current', 'target') and field not in visual:
+                raise ValueError(f'{label} goal needs {field} as a number' + ('.' if field in ('current', 'target') else ' when given.'))
+        if visual['target'] == visual.get('baseline', 0):
+            raise ValueError(f'{label} goal target must differ from its baseline (0 unless given).')
+        if visual.get('status') not in GOAL_STATUS:
+            raise ValueError(f'{label} goal status must be one of {GOAL_STATUS}.')
     elif kind == 'flow':
         steps = visual.get('steps')
         if not isinstance(steps, list) or not 2 <= len(steps) <= 6:
@@ -249,6 +282,7 @@ def validate(data, base=Path('.')):
         known(metric, 'metric', 'Metric')
         text(metric, 'value', 'Metric')
         text(metric, 'label', 'Metric')
+    usage = validate_usage(data.get('usage'))
     slides = data.get('slides')
     if not isinstance(slides, list) or not 3 <= len(slides) <= 10:
         raise ValueError('slides must be a list of 3 to 10 content slides.')
@@ -278,7 +312,11 @@ def validate(data, base=Path('.')):
         text(slide, 'body', label, required=False)
         text(slide, 'why', label, required=False)
         check_links(slide.get('evidence', []), label)
-        if kind == 'status':
+        if kind in ('status', 'usage'):
+            states = USAGE_STATES if kind == 'usage' else STATES
+            default_state = states[0]
+            if kind == 'usage':
+                text(slide, 'data_from', label)
             points = slide.get('points', [])
             if not isinstance(points, list) or len(points) > 5:
                 raise ValueError(f'{label} points must be a list of at most five.')
@@ -287,8 +325,8 @@ def validate(data, base=Path('.')):
                     raise ValueError(f'{label} points must be objects.')
                 known(point, 'point', f'{label} point')
                 text(point, 'text', f'{label} point')
-                if point.get('state', 'done') not in STATES:
-                    raise ValueError(f'{label} point state must be one of {STATES}.')
+                if point.get('state', default_state) not in states:
+                    raise ValueError(f'{label} point state must be one of {states}.')
                 if point.get('url'):
                     check_url(point['url'], label)
             if slide.get('visual') is not None:
@@ -305,6 +343,16 @@ def validate(data, base=Path('.')):
         raise ValueError(f'Keep a check-in to at most {MAX_DECISIONS} decisions.')
     if questions > MAX_QUESTIONS:
         raise ValueError(f'Keep a check-in to at most {MAX_QUESTIONS} open questions; turn the rest into decisions with options.')
+    usage_slides = sum(s['kind'] == 'usage' for s in slides)
+    if usage['status'] == 'no-data' and usage_slides:
+        raise ValueError('A usage slide needs usage data. With status no-data, say so on the cover and propose how to start measuring.')
+    if usage['status'] != 'no-data' and not usage_slides:
+        raise ValueError('Usage data was found, so give it a usage slide: adoption, what stands out, data problems, and progress toward the goal.')
+    if not usage.get('goal') and not questions:
+        raise ValueError('There is no goal yet, so ask for one: add a question slide asking which number would tell you this is working.')
+    goals = [s for s in slides if (s.get('visual') or {}).get('type') == 'goal']
+    if usage['status'] in GOAL_STATUS and not goals:
+        warnings.append('Usage is tracked against a goal but no slide shows it. Add a goal visual to the usage slide.')
     if total > HARD_LIMIT:
         raise ValueError(f'The deck runs about {total} seconds; cut it to fit five minutes.')
     if total > SOFT_LIMIT:
@@ -315,11 +363,11 @@ def validate(data, base=Path('.')):
             warnings.append(f'No {timing} decision. Fine if the evidence has none; do not invent one.')
     if not any(s['kind'] == 'visual' for s in slides):
         warnings.append('No visual slide shows what the work looks like.')
-    info = [s for s in slides if s['kind'] in ('status', 'visual')]
+    info = [s for s in slides if s['kind'] in INFO_KINDS]
     pictured = sum(1 for s in info if s.get('visual'))
     if info and pictured * 2 < len(info):
         warnings.append(f'Only {pictured} of {len(info)} information slides have a picture. Show features with screenshots, before-and-afters or a chart.')
-    without_why = [i for i, s in enumerate(slides, 1) if s['kind'] in ('status', 'visual') and not s.get('why')]
+    without_why = [i for i, s in enumerate(slides, 1) if s['kind'] in INFO_KINDS and not s.get('why')]
     if without_why:
         warnings.append('Slides ' + ', '.join(map(str, without_why)) + ' do not say why it matters (add why).')
     warnings.extend(plain_language(data))
@@ -327,13 +375,48 @@ def validate(data, base=Path('.')):
     return data, warnings
 
 
+def validate_usage(usage):
+    """The cover's usage line: where the project stands against its goal, and which data says so."""
+    if usage is None:
+        raise ValueError('Deck needs usage, the result of the usage data step (references/usage-data.md). When nothing measures the project, set status to no-data and list where you looked in searched.')
+    if not isinstance(usage, dict):
+        raise ValueError('usage must be an object.')
+    known(usage, 'usage_summary', 'Usage')
+    if usage.get('status') not in USAGE_STATUS:
+        raise ValueError(f'usage status must be one of {USAGE_STATUS}.')
+    text(usage, 'goal', 'Usage', required=False)
+    sources, searched = usage.get('sources', []), usage.get('searched', [])
+    if not isinstance(sources, list):
+        raise ValueError('usage sources must be a list.')
+    for source in sources:
+        if not isinstance(source, dict):
+            raise ValueError('usage sources must be objects.')
+        known(source, 'source', 'Usage source')
+        text(source, 'name', 'Usage source')
+        text(source, 'as_of', 'Usage source', required=False)
+        if source.get('url'):
+            check_url(source['url'], 'Usage source')
+    if not isinstance(searched, list) or not all(isinstance(x, str) and x.strip() for x in searched):
+        raise ValueError('usage searched must be a list of nonempty strings.')
+    status = usage['status']
+    if status == 'no-data' and (sources or not searched):
+        raise ValueError('usage status no-data means no sources, and searched must list where you looked.')
+    if status != 'no-data' and not sources:
+        raise ValueError(f'usage status {status} needs sources: name each data source and how fresh it is.')
+    if status in GOAL_STATUS and not usage.get('goal'):
+        raise ValueError(f'usage status {status} needs the goal in words.')
+    if status == 'no-goal' and usage.get('goal'):
+        raise ValueError('usage status no-goal means no goal is agreed yet; drop goal, or pick where you stand against it.')
+    return usage
+
+
 def plain_language(data):
     """Warn about insider shorthand on anything the director reads. Evidence and captions are exempt."""
     found = []
-    fields = [('Cover', data.get('headline', '')), ('Cover', data.get('what_it_is', ''))]
+    fields = [('Cover', data.get('headline', '')), ('Cover', data.get('what_it_is', '')), ('Cover', data.get('usage', {}).get('goal', ''))]
     for number, slide in enumerate(data['slides'], 1):
         label = f'Slide {number}'
-        for field in ('title', 'lede', 'body', 'why', 'say', 'question', 'context', 'recommendation', 'default'):
+        for field in ('title', 'lede', 'body', 'why', 'say', 'question', 'context', 'recommendation', 'default', 'data_from'):
             fields.append((label, slide.get(field, '')))
         fields += [(label, p['text']) for p in slide.get('points', [])]
         fields += [(label, o['label'] + ' ' + o['consequence']) for o in slide.get('options', [])]
@@ -426,6 +509,8 @@ def render_visual(v):
         unit = f' {esc(v["unit"])}' if v.get('unit') else ''
         rows = ''.join(f'<div class="row{" hi" if b.get("highlight") else ""}"><span>{esc(b["label"])}</span><span class="track2"><span class="fill" style="width:{b["value"] / top * 100:.1f}%"></span></span><b>{esc(format(b["value"], "g"))}{unit}</b></div>' for b in v['bars'])
         body = f'<div class="bars"><p class="question">{esc(v["question"])}</p>{rows}</div>'
+    elif v['type'] == 'goal':
+        body = render_goal(v)
     elif v['type'] == 'flow':
         body = '<ol class="flow">' + ''.join(f'<li class="state-{esc(s.get("state", "done"))}"><strong>{esc(s["label"])}</strong><span>{esc(s.get("detail", ""))}</span></li>' for s in v['steps']) + '</ol>'
     elif v['type'] == 'compare':
@@ -436,12 +521,33 @@ def render_visual(v):
     return f'<figure class="figure figure-{v["type"]}">{body}{caption}</figure>'
 
 
+def render_goal(v):
+    """Progress from the baseline toward the target, with where the current trend lands. Static markup, so hand-built decks need no script."""
+    base, unit = v.get('baseline', 0), v.get('unit', '')
+    share = lambda x: max(0.0, min(1.0, (x - base) / (v['target'] - base))) * 100
+    icon = {'on-track': '✓', 'at-risk': '!', 'off-track': '✕', 'too-early': '…'}[v['status']]
+    by = f' by {esc(v["by"])}' if v.get('by') else ''
+    now = f'{with_unit(v["current"], unit)} of {with_unit(v["target"], unit)}{by}'
+    projected, marker = '', ''
+    if 'projected' in v:
+        projected = f'<span>At this pace: {esc(with_unit(v["projected"], unit))}{by}</span>'
+        marker = f'<span class="goal-proj" style="left:{share(v["projected"]):.1f}%"></span>'
+        now += f', heading for {with_unit(v["projected"], unit)}'
+    return (f'<div class="goal goal-{v["status"]}"><div class="goal-head"><span>{esc(v["metric"])}</span><i>{icon} {STATUS_LABELS[v["status"]]}</i></div>'
+            f'<p class="goal-now"><b>{esc(with_unit(v["current"], unit))}</b> of {esc(with_unit(v["target"], unit))}{by}</p>'
+            f'<div class="goal-track" role="img" aria-label="{esc(v["metric"])}: {esc(now)}"><span class="goal-fill" style="width:{share(v["current"]):.1f}%"></span>{marker}</div>'
+            f'<div class="goal-scale"><span>{esc(with_unit(base, unit))}</span>{projected}<span>Goal {esc(with_unit(v["target"], unit))}</span></div></div>')
+
+
 def render_info(slide, number):
-    eyebrow = 'What it looks like' if slide['kind'] == 'visual' else 'Where things stand'
+    eyebrow = {'visual': 'What it looks like', 'status': 'Where things stand', 'usage': 'What the usage data says'}[slide['kind']]
+    if slide['kind'] == 'usage':
+        eyebrow += f' · {esc(slide["data_from"])}'
     body = f'<p class="body">{esc(slide["body"])}</p>' if slide.get('body') else ''
     extra = ''
-    if slide['kind'] == 'status' and slide.get('points'):
-        extra = '<ul class="points">' + ''.join(f'<li class="state-{esc(p.get("state", "done"))}"><i>{esc(p.get("state", "done"))}</i><span>{link(p["text"], p.get("url"))}</span></li>' for p in slide['points']) + '</ul>'
+    if slide['kind'] in ('status', 'usage') and slide.get('points'):
+        default_state = 'up' if slide['kind'] == 'usage' else 'done'
+        extra = '<ul class="points">' + ''.join(f'<li class="state-{esc(p.get("state", default_state))}"><i>{esc(p.get("state", default_state).replace("-", " "))}</i><span>{link(p["text"], p.get("url"))}</span></li>' for p in slide['points']) + '</ul>'
     if slide.get('visual'):
         figure = render_visual(slide['visual'])
         # A status picture sits beside its points so the slide fits without scrolling.
@@ -491,6 +597,16 @@ def render_question(slide, number, index):
 <dl class="terms"><div><dt>If you don't answer</dt><dd>{esc(slide['default'])}</dd></div>{needed}</dl>{'</div></div>' if figure else ''}{sources}{say(slide)}</section>'''
 
 
+def render_usage(usage):
+    status = usage['status']
+    goal = f'<span>Goal: {esc(usage["goal"])}</span>' if usage.get('goal') else '<span>No agreed goal yet</span>' if status == 'no-goal' else ''
+    if status == 'no-data':
+        found = '<span class="src">Nothing measures this yet. Looked in: ' + esc('; '.join(usage['searched'])) + '</span>'
+    else:
+        found = '<span class="src">Data: ' + ', '.join(link(s['name'], s.get('url')) + (f' (through {esc(s["as_of"])})' if s.get('as_of') else '') for s in usage['sources']) + '</span>'
+    return f'<p class="usage-line usage-line-{status}"><i>{STATUS_LABELS[status]}</i>{goal}{found}</p>'
+
+
 def render_slides(data):
     decisions = [s for s in data['slides'] if s['kind'] == 'decision']
     questions = [s for s in data['slides'] if s['kind'] == 'question']
@@ -502,9 +618,10 @@ def render_slides(data):
     count = ' and '.join(asks) + ' for you' + (f', {made} of them about reversing something already in place' if made else '')
     what = f'<p class="what">{esc(data["what_it_is"])}</p>' if data.get('what_it_is') else ''
     hero = render_visual(data['hero']).replace('class="figure', 'class="hero figure', 1) if data.get('hero') else ''
+    usage = render_usage(data['usage']) if data.get('usage') else ''
     parts = [f'''<section class="slide cover{' has-hero' if hero else ''}" data-kind="cover" data-seconds="{SECONDS['cover']}" aria-label="Slide 1">
 <div class="eyebrow">Check-in · {esc(data['project'])} · {esc(data['window'])}</div>{what}<h1>{esc(data['headline'])}</h1>{hero}
-<div class="metrics">{metrics}</div><p class="count">{count}. About {round(data['seconds'] / 60)} minutes. Arrow keys or swipe to move; pick an option on any call slide.</p>{gaps}</section>''']
+<div class="metrics">{metrics}</div>{usage}<p class="count">{count}. About {round(data['seconds'] / 60)} minutes. Arrow keys or swipe to move; pick an option on any call slide.</p>{gaps}</section>''']
     number, call, asked = 1, 0, 0
     for slide in data['slides']:
         number += 1
@@ -553,6 +670,9 @@ Delete the ones you don't need, duplicate the ones you do, and change only the w
 - Decision slides: data-id must be unique, data-recommended and data-current are option positions from 0,
   data-default is what you do with no answer. Question slides need data-id and data-default.
 - Bars: each fill width is the value divided by the largest value, as a percent.
+- Goal tracker: the fill width is (current - baseline) / (target - baseline) as a percent, and the dashed
+  marker's left is the same for the projected value. Keep the status class and its label in step.
+- Cover usage line: keep it on every deck. With no data, use the usage-line-no-data class and list where you looked.
 - Line charts: edit only the JSON in data-chart (question, unit, x labels, series with one value per label).
 - Set the deck name and date in the meta script near the bottom, and the project name in <title> and the header.
 - Keep the rules in references/deck-data.md: a call within the first three slides, no more than two
@@ -579,6 +699,7 @@ def starter():
         dict(type='flow', steps=[dict(label='Typed query', detail='Staff search page'), dict(label='Ranking', detail='Best match first', state='done'), dict(label='Filters', detail='Size and color', state='moving')]),
         dict(type='compare', before=dict(label='Before', text='Newest products first.'), after=dict(label='After', text='Best match first, typos forgiven.')),
         dict(type='code', text='$ search "blu ceramc mug"\n1. Blue ceramic mug, 12 oz'),
+        dict(type='line', question='Seconds for staff to find a product, by week', unit='s', x=['Sep 22', 'Sep 29', 'Oct 6', 'Oct 13'], series=[dict(label='New search', values=[38, 21, 12, 8]), dict(label='Old page', values=[40, 41, 39, 40])]),
     ]
     more = []
     for visual in extras:

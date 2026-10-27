@@ -5,29 +5,87 @@
   "what_it_is": "A search box that lets store staff find any product in the catalog, instead of scrolling a list sorted by date.",
   "headline": "Staff now find the right product on the first try most of the time. Customers still see the old page, and one call about that is yours.",
   "metrics": [
-    {"value": "6 s", "label": "to find a product, down from 40"},
-    {"value": "87%", "label": "right product in the top three"},
-    {"value": "2", "label": "old apps still on the old search"}
+    {
+      "value": "6 s",
+      "label": "to find a product, down from 40"
+    },
+    {
+      "value": "87%",
+      "label": "right product in the top three"
+    },
+    {
+      "value": "2",
+      "label": "old apps still on the old search"
+    }
   ],
-  "gaps": ["Customer support tickets (no access from this session)"],
+  "usage": {
+    "status": "at-risk",
+    "goal": "150 of our 200 stores searching every week by Dec 1",
+    "sources": [
+      {
+        "name": "Search event log",
+        "as_of": "Oct 26"
+      },
+      {
+        "name": "Store list",
+        "as_of": "Oct 1"
+      }
+    ]
+  },
+  "gaps": [
+    "Customer support tickets (no access from this session)"
+  ],
   "slides": [
     {
       "kind": "status",
       "title": "Search is live for every staff member",
       "lede": "Anyone on staff can type a product name and get the best match first. Customers still see the old page.",
       "points": [
-        {"text": "Results ranked by best match", "state": "done"},
-        {"text": "Typos still find the product", "state": "done"},
-        {"text": "Filters by size and color", "state": "moving"},
-        {"text": "Customer-facing page", "state": "blocked"}
+        {
+          "text": "Results ranked by best match",
+          "state": "done"
+        },
+        {
+          "text": "Typos still find the product",
+          "state": "done"
+        },
+        {
+          "text": "Filters by size and color",
+          "state": "moving"
+        },
+        {
+          "text": "Customer-facing page",
+          "state": "blocked"
+        }
       ],
-      "visual": {"type": "stats", "stats": [
-        {"value": "6 s", "label": "to find a product", "change": "34 s faster than the old page", "tone": "good"},
-        {"value": "87%", "label": "right product in the top three", "change": "up from 41%", "tone": "good"}
-      ]},
+      "visual": {
+        "type": "stats",
+        "stats": [
+          {
+            "value": "6 s",
+            "label": "to find a product",
+            "change": "34 s faster than the old page",
+            "tone": "good"
+          },
+          {
+            "value": "87%",
+            "label": "right product in the top three",
+            "change": "up from 41%",
+            "tone": "good"
+          }
+        ]
+      },
       "why": "Store staff stop asking engineers to look products up for them.",
       "say": "The short version: staff search works and they are using it. The customer page is the open question.",
-      "evidence": [{"label": "PR #41", "url": "https://github.com/example/search/pull/41"}, {"label": "Staff timing test, Oct 23"}]
+      "evidence": [
+        {
+          "label": "PR #41",
+          "url": "https://github.com/example/search/pull/41"
+        },
+        {
+          "label": "Staff timing test, Oct 23"
+        }
+      ]
     },
     {
       "kind": "decision",
@@ -36,8 +94,14 @@
       "question": "Keep the search index in a single file, or move it to the main database now?",
       "context": "I kept it in one file in week one to ship fast. It works, but a nightly rebuild now takes 40 minutes and blocks updates while it runs.",
       "options": [
-        {"label": "Keep the single file", "consequence": "No migration. The nightly rebuild keeps growing with the catalog."},
-        {"label": "Move to the main database", "consequence": "About two days of work. Rebuilds stop blocking updates."}
+        {
+          "label": "Keep the single file",
+          "consequence": "No migration. The nightly rebuild keeps growing with the catalog."
+        },
+        {
+          "label": "Move to the main database",
+          "consequence": "About two days of work. Rebuilds stop blocking updates."
+        }
       ],
       "current": 0,
       "recommended": 1,
@@ -46,38 +110,91 @@
       "reversibility": "costly",
       "reversibility_note": "Cheap until the filters land next week.",
       "needed_by": "Before filter work starts",
-      "evidence": [{"label": "PR #38", "url": "https://github.com/example/search/pull/38"}]
+      "evidence": [
+        {
+          "label": "PR #38",
+          "url": "https://github.com/example/search/pull/38"
+        }
+      ]
     },
     {
       "kind": "visual",
       "title": "The same search, before and after",
       "lede": "The old page listed the newest products first, so the mug a staff member wanted sat at the bottom. Now it comes first.",
-      "visual": {"type": "slider",
-        "before": {"src": "search-before.svg", "alt": "Old results: gift cards and towels above the mug", "label": "Before"},
-        "after": {"src": "search-after.svg", "alt": "New results: the blue mug first, close matches below", "label": "After"},
-        "caption": "Drag the handle. Same query on Oct 10 and today."},
+      "visual": {
+        "type": "slider",
+        "before": {
+          "src": "search-before.svg",
+          "alt": "Old results: gift cards and towels above the mug",
+          "label": "Before"
+        },
+        "after": {
+          "src": "search-after.svg",
+          "alt": "New results: the blue mug first, close matches below",
+          "label": "After"
+        },
+        "caption": "Drag the handle. Same query on Oct 10 and today."
+      },
       "why": "The first result is the one they wanted, so nobody scrolls."
     },
     {
-      "kind": "visual",
-      "title": "Search time fell week by week as ranking improved",
-      "lede": "Each ranking fix cut the time it takes to find a product. The last two weeks are flat, so the easy wins are done.",
-      "visual": {"type": "line", "question": "Seconds for staff to find a product, by week", "unit": "s",
-        "x": ["Sep 22", "Sep 29", "Oct 6", "Oct 13", "Oct 20", "Oct 27"],
-        "series": [
-          {"label": "New search", "values": [38, 21, 12, 8, 6, 6]},
-          {"label": "Old page", "values": [40, 41, 39, 40, 42, 40]}
-        ],
-        "caption": "Timed on the same ten products each week."},
-      "why": "More ranking work now buys little. Filters are the next real gain."
+      "kind": "usage",
+      "data_from": "search event log, Sep 22 to Oct 26",
+      "title": "112 of 200 stores search every week, behind the pace for December",
+      "lede": "Use grew fast after launch, then flattened. At this rate about 130 stores search weekly by Dec 1, short of the 150 we aimed for.",
+      "points": [
+        {
+          "text": "Stores that try it stick: 9 in 10 come back the next week",
+          "state": "up"
+        },
+        {
+          "text": "Night shifts search three times as often as day shifts",
+          "state": "surprise"
+        },
+        {
+          "text": "Two stores' handheld scanners never report searches, so their use is invisible",
+          "state": "data-gap"
+        }
+      ],
+      "visual": {
+        "type": "goal",
+        "metric": "Stores searching every week",
+        "current": 112,
+        "target": 150,
+        "projected": 130,
+        "by": "Dec 1",
+        "status": "at-risk",
+        "caption": "The dashed line extends the last three weeks in a straight line."
+      },
+      "why": "Stores that start keep going, so the gap is the stores that haven't tried it yet.",
+      "say": "Adoption is real but stalling. The fix is reaching the 88 stores that never opened it, not making search better for the ones that did.",
+      "evidence": [
+        {
+          "label": "Event log: distinct stores with a staff search, per week"
+        },
+        {
+          "label": "Repeat use: stores active one week and also the next"
+        },
+        {
+          "label": "Test and head-office accounts excluded"
+        }
+      ]
     },
     {
       "kind": "question",
       "id": "out-of-stock",
       "question": "When the exact item is sold out, should staff see similar items first?",
       "context": "Right now a sold-out exact match still ranks first. Staff in two stores asked for in-stock lookalikes on top. I don't know which matters more to you.",
-      "visual": {"type": "image", "src": "search-after.svg", "alt": "Results with the exact mug first and similar mugs below"},
-      "suggestions": ["Exact match first, always", "In-stock lookalikes first", "Ask the store managers"],
+      "visual": {
+        "type": "image",
+        "src": "search-after.svg",
+        "alt": "Results with the exact mug first and similar mugs below"
+      },
+      "suggestions": [
+        "Exact match first, always",
+        "In-stock lookalikes first",
+        "Ask the store managers"
+      ],
       "default": "Keep the exact match first.",
       "needed_by": "Oct 31"
     },
@@ -86,16 +203,41 @@
       "title": "Two old apps still use the old search",
       "lede": "The warehouse scanner and the returns desk call the old search directly. Moving them is small, but each needs a day of testing in the store.",
       "points": [
-        {"text": "Warehouse scanner", "state": "risk"},
-        {"text": "Returns desk", "state": "risk"}
+        {
+          "text": "Warehouse scanner",
+          "state": "risk"
+        },
+        {
+          "text": "Returns desk",
+          "state": "risk"
+        }
       ],
-      "visual": {"type": "bars", "question": "Searches per day still hitting the old system", "bars": [
-        {"label": "Warehouse scanner", "value": 1200, "highlight": true},
-        {"label": "Returns desk", "value": 300, "highlight": true},
-        {"label": "Staff search page", "value": 0}
-      ]},
+      "visual": {
+        "type": "bars",
+        "question": "Searches per day still hitting the old system",
+        "bars": [
+          {
+            "label": "Warehouse scanner",
+            "value": 1200,
+            "highlight": true
+          },
+          {
+            "label": "Returns desk",
+            "value": 300,
+            "highlight": true
+          },
+          {
+            "label": "Staff search page",
+            "value": 0
+          }
+        ]
+      },
       "why": "Until they move, we pay to run two search systems.",
-      "evidence": [{"label": "Request logs, Oct 20 to 26"}]
+      "evidence": [
+        {
+          "label": "Request logs, Oct 20 to 26"
+        }
+      ]
     },
     {
       "kind": "decision",
@@ -104,9 +246,18 @@
       "question": "Turn on the new search for customers this month?",
       "context": "Staff results are good. Customers type differently, and we have not tested with them. A launch is public, so I won't do it without you.",
       "options": [
-        {"label": "Launch to 10% of customers", "consequence": "Real customer data in a week. Easy to switch off."},
-        {"label": "Launch to everyone", "consequence": "Fastest. A bad ranking day hits every customer."},
-        {"label": "Wait for filters", "consequence": "Launch in about three weeks with filters included."}
+        {
+          "label": "Launch to 10% of customers",
+          "consequence": "Real customer data in a week. Easy to switch off."
+        },
+        {
+          "label": "Launch to everyone",
+          "consequence": "Fastest. A bad ranking day hits every customer."
+        },
+        {
+          "label": "Wait for filters",
+          "consequence": "Launch in about three weeks with filters included."
+        }
       ],
       "recommended": 0,
       "recommendation": "A small launch tells us how customers search without betting the store on it.",
@@ -116,5 +267,8 @@
       "needed_by": "Nov 7 to make this month"
     }
   ],
-  "next": ["Filters by size and color", "Moving the warehouse scanner to the new search"]
+  "next": [
+    "Filters by size and color",
+    "Moving the warehouse scanner to the new search"
+  ]
 }

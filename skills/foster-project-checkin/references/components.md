@@ -17,11 +17,13 @@ Agents never write HTML, CSS or inline styles for a deck. You pick components an
 | A change in what a user sees | `slider` (drag to compare) or `gallery` (side by side) | Two screenshots of the same view at the same size. The strongest slide for UI work. |
 | The thing working | `image` | A real screenshot, terminal capture or SVG diagram. |
 | One or two numbers that matter | `stats` | A big number, a plain label, and how it changed. |
+| Progress toward a goal | `goal` | Where the number is, where it needs to be, and where the current pace lands. |
 | A trend over time | `line` | One to three series over 2 to 12 points. |
 | A comparison between a few things | `bars` | Old way, new way, best possible. Highlight the one you want read. |
 | How the parts connect, or a rollout order | `flow` | Two to six steps, each with a state. |
 | A rule or behavior that changed, in words | `compare` | Short before and after text. |
 | Real output | `code` | At most 18 lines. |
+| What the usage data says | usage slide | Adoption, findings, data problems, with a `goal` or `line` beside them. |
 | A choice with known options | decision slide | Options, a recommendation, a default. |
 | Something only the director knows | question slide | Free text with up to four quick answers. |
 
@@ -31,11 +33,15 @@ If nothing fits, use the closest component and say what was missing in `gaps`. A
 
 **status**: eyebrow "Where things stand", a claim as the title, the lede, up to five points with a state chip (`done`, `moving`, `blocked`, `dropped`, `risk`), and an optional visual beside the points.
 
+**usage**: eyebrow "What the usage data says" plus where the data came from and the dates it covers, then the title, the lede, up to five findings with a state chip (`up`, `down`, `flat`, `surprise`, `data-gap`, `blocked`), and an optional visual beside them, usually a `goal` or a `line`. [usage-data.md](usage-data.md) covers finding and reading the data.
+
 **visual**: eyebrow "What it looks like", the title, the lede, and one full-width visual.
 
 **decision**: eyebrow "Call N", an amber left edge, two to four option cards (A, B, C, D) tagged "My rec" and "In effect now", then the recommendation, the default, how reversible it is, and a note field.
 
 **question**: eyebrow "Question N · Only you know this", a blue left edge, the context, optional quick-answer chips, a free-text answer, and what you will assume if he doesn't answer. With a visual, the picture sits on the left and the answer on the right. Use a question when you can't honestly write the options, for example "Which customers matter most for this?" or "Does this match what you saw in the store?". When you can write the options, make it a decision.
+
+The cover also carries a usage line on every deck, built from the deck's `usage` summary: the status chip, the goal in words, and the data sources with how fresh each is, or "Nothing measures this yet" with where you looked.
 
 Both kinds of ask show on the progress track (amber for calls, blue for questions) and in the closing recap, and both go into the "Copy my calls" text.
 
@@ -51,6 +57,8 @@ Every visual takes an optional `caption`.
 
 **stats**: `stats`, one to four, each with `value` (a short string such as "6 s" or "87%"), `label`, optional `change` ("up from 41%") and optional `tone` (`good`, `bad`, `neutral`). Tone adds an arrow as well as a color, so it never relies on color alone.
 
+**goal**: `metric` (plain label), `current`, `target`, optional `baseline` (defaults to 0), optional `projected` (where the current pace lands by the deadline), optional `unit` and `by` (the deadline in words), and `status`: `on-track`, `at-risk`, `off-track` or `too-early`. It draws a bar from the baseline to the target filled to the current value, a dashed mark at the projection, and a status chip with a symbol as well as a color. It works for targets that go down, such as error rates, because the bar runs from baseline to target either way.
+
 **line**: `question` (the chart title, as a plain question), optional `unit`, `x` (2 to 12 labels), and `series`, one to three, each with `label` and `values` (one number per x label, or null for a gap). The chart starts at zero unless values go negative, labels each line at its end, puts a tooltip on every point, and carries a hidden data table for screen readers.
 
 **bars**: `question`, optional `unit`, two to six `bars`, each with `label`, `value` and optional `highlight`.
@@ -63,13 +71,13 @@ Every visual takes an optional `caption`.
 
 ## The palette
 
-Colors are tokens on `:root` in the stylesheet, redefined for dark mode. Accent green marks progress and recommendations, amber marks calls, blue marks questions, and the state colors mark point and step states. Chart lines use three validated categorical slots (blue, orange, aqua) in fixed order: the first series is always blue. Don't ask for other colors. If a chart needs more than three series, it needs to be two charts.
+Colors are tokens on `:root` in the stylesheet, redefined for dark mode. Accent green marks progress and recommendations, amber marks calls, blue marks questions, and the state colors mark point and step states. The goal tracker and the cover's usage line reuse them: green on track, amber at risk, red off track, gray when it's too early or there is no goal or data. Chart lines use three validated categorical slots (blue, orange, aqua) in fixed order: the first series is always blue. Don't ask for other colors. If a chart needs more than three series, it needs to be two charts.
 
 ## Two ways to build, one look
 
 **With the renderer** (any agent that can run Python 3): write the deck JSON and run `scripts/render_deck.py`. It validates everything and inlines the images. Prefer this whenever it can run.
 
-**By hand** (no Python, or a chat with no tools): copy `assets/starter.html` and edit it. It is the sample deck as the renderer produces it, with the stylesheet and script already inlined and a `COMPONENT` comment above every slide. The visuals the sample doesn't use (gallery, image, flow, compare, code) sit in a `<template>` at the end of the slides, ready to copy out. A note at the top of the file lists what to change. Keep the style and script blocks untouched and change only words, numbers and images. The page script reads each call from the slide's own markup and draws line charts from their `data-chart` JSON, so nothing needs computing except bar widths.
+**By hand** (no Python, or a chat with no tools): copy `assets/starter.html` and edit it. It is the sample deck as the renderer produces it, with the stylesheet and script already inlined and a `COMPONENT` comment above every slide. The visuals the sample doesn't use (gallery, image, flow, compare, code, line) sit in a `<template>` at the end of the slides, ready to copy out. A note at the top of the file lists what to change. Keep the style and script blocks untouched and change only words, numbers and images. The page script reads each call from the slide's own markup and draws line charts from their `data-chart` JSON, so nothing needs computing except bar widths and the goal tracker's fill and marker positions.
 
 The renderer regenerates the starter with `python3 scripts/render_deck.py --starter`, and a test fails if the two drift apart, so a hand-built deck looks exactly like a rendered one. Say in `gaps` when a deck was built by hand, since nothing validated it.
 
