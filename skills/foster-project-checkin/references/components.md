@@ -26,6 +26,8 @@ Agents never write HTML, CSS or inline styles for a deck. You pick components an
 | What the usage data says | usage slide | Adoption, findings, data problems, with a `goal` or `line` beside them. |
 | A choice with known options | decision slide | Options, a recommendation, a default. |
 | Something only the director knows | question slide | Free text with up to four quick answers. |
+| A feature or design idea, before it is built | mock slide | The mock beside today's screen, three fixed reactions. |
+| What we should ask users next | research slide | Two to four questions; he ticks the ones to send. |
 
 If nothing fits, use the closest component and say what was missing in `gaps`. A new component goes into this skill (renderer, stylesheet, this file and a test), never into one deck.
 
@@ -41,9 +43,13 @@ If nothing fits, use the closest component and say what was missing in `gaps`. A
 
 **question**: eyebrow "Question N · Only you know this", a blue left edge, the context, optional quick-answer chips, a free-text answer, and what you will assume if he doesn't answer. With a visual, the picture sits on the left and the answer on the right. Use a question when you can't honestly write the options, for example "Which customers matter most for this?" or "Does this match what you saw in the store?". When you can write the options, make it a decision.
 
-The cover also carries a usage line on every deck, built from the deck's `usage` summary: the status chip, the goal in words, and the data sources with how fresh each is, or "Nothing measures this yet" with where you looked.
+**mock**: eyebrow "Mock N · Not built yet, your reaction", a blue dashed edge so it never reads as shipped work, the picture stamped "Mock" on the left, and on the right why this idea, the reactions Build it, Change it and Not now, a note field, the rough cost and the default.
 
-Both kinds of ask show on the progress track (amber for calls, blue for questions) and in the closing recap, and both go into the "Copy my calls" text.
+**research**: eyebrow "Questions worth asking · Tick the ones to send", a blue left edge, and two to four ask cards. Each card names who to ask, the exact question, what the answer would change, and how we'd ask. Ticking a card marks it "Send it"; several can be ticked.
+
+The cover opens with the mission block on every deck: the mission statement with a chip saying how sure we are of it (Confirmed by you, My reading. Confirm?, or Unclear. I need you), the roadmap as a strip of milestones (done in green, now in amber, next and later in gray), and one progress line. It also carries a usage line on every deck, built from the deck's `usage` summary: the status chip, the goal in words, and the data sources with how fresh each is, or "Nothing measures this yet" with where you looked.
+
+Every kind of ask shows on the progress track (amber for decisions, blue for questions, mocks and research) and in the closing recap, and all of them go into the "Copy my calls" text.
 
 ## Visuals
 
@@ -77,7 +83,7 @@ Colors are tokens on `:root` in the stylesheet, redefined for dark mode. Accent 
 
 **With the renderer** (any agent that can run Python 3): write the deck JSON and run `scripts/render_deck.py`. It validates everything and inlines the images. Prefer this whenever it can run.
 
-**By hand** (no Python, or a chat with no tools): copy `assets/starter.html` and edit it. It is the sample deck as the renderer produces it, with the stylesheet and script already inlined and a `COMPONENT` comment above every slide. The visuals the sample doesn't use (gallery, image, flow, compare, code, line) sit in a `<template>` at the end of the slides, ready to copy out. A note at the top of the file lists what to change. Keep the style and script blocks untouched and change only words, numbers and images. The page script reads each call from the slide's own markup and draws line charts from their `data-chart` JSON, so nothing needs computing except bar widths and the goal tracker's fill and marker positions.
+**By hand** (no Python, or a chat with no tools): copy `assets/starter.html` and edit it. It is the sample deck as the renderer produces it, with the stylesheet and script already inlined and a `COMPONENT` comment above every slide. The visuals the sample doesn't use (bars, gallery, image, flow, compare, code, line) sit in a `<template>` at the end of the slides, ready to copy out. A note at the top of the file lists what to change. Keep the style and script blocks untouched and change only words, numbers and images. The page script reads each call from the slide's own markup and draws line charts from their `data-chart` JSON, so nothing needs computing except bar widths and the goal tracker's fill and marker positions.
 
 The renderer regenerates the starter with `python3 scripts/render_deck.py --starter`, and a test fails if the two drift apart, so a hand-built deck looks exactly like a rendered one. Say in `gaps` when a deck was built by hand, since nothing validated it.
 

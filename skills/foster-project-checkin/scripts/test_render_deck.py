@@ -27,18 +27,21 @@ def decision(identifier='db', timing='upcoming'):
     return d
 
 
+MISSION = dict(statement='Staff find any product in seconds.', roadmap=[dict(label='Staff search', state='done'), dict(label='Customer search', state='next')], progress='Staff search shipped.', clarity='confirmed', source='Kickoff notes')
+
+
 NO_DATA = dict(status='no-data', goal='Staff find a product in under 10 seconds', searched=['Connected analytics tools', 'Event calls in the code'])
 
 
 def deck():
-    return dict(project='Search', project_id='search', window='Since Oct 17', headline='Search works for staff.', next=['Ranking tweaks'], usage=copy.deepcopy(NO_DATA), slides=[status(), decision('keep', 'made'), dict(kind='visual', title='The results page', lede='It looks like this.', visual=dict(type='flow', steps=[dict(label='Query'), dict(label='Rank', state='moving')])), decision()])
+    return dict(project='Search', project_id='search', window='Since Oct 17', headline='Search works for staff.', next=['Ranking tweaks'], usage=copy.deepcopy(NO_DATA), mission=copy.deepcopy(MISSION), slides=[status(), decision('keep', 'made'), dict(kind='visual', title='The results page', lede='It looks like this.', visual=dict(type='flow', steps=[dict(label='Query'), dict(label='Rank', state='moving')])), decision()])
 
 
 class DeckTests(unittest.TestCase):
     def test_valid_deck_passes_without_errors(self):
         data, warnings = r.validate(deck())
         self.assertFalse(any('decision' in w or 'visual slide' in w for w in warnings))
-        self.assertEqual(data['seconds'], 20 + 35 + 50 + 35 + 50 + 25)
+        self.assertEqual(data['seconds'], 25 + 35 + 50 + 35 + 50 + 25)
 
     def test_decisions_must_be_interleaved(self):
         data = deck()
@@ -51,7 +54,7 @@ class DeckTests(unittest.TestCase):
     def test_deck_needs_a_decision_and_a_time_budget(self):
         data = deck()
         data['slides'] = [status('a'), status('b')]
-        with self.assertRaisesRegex(ValueError, '3 to 10'):
+        with self.assertRaisesRegex(ValueError, '3 to 12'):
             r.validate(data)
         data = deck()
         for slide in data['slides']:
@@ -128,7 +131,7 @@ class DeckTests(unittest.TestCase):
             data['slides'][0]['why'] = 'Staff stop asking engineers to look things up.'
             data['slides'][2] = dict(kind='visual', title='Results got clearer', lede='Before and after.', why='Fewer wrong clicks.', evidence=[dict(label='PR 41')], visual=dict(type='gallery', images=[dict(src='a.png', alt='Old', label='Before'), dict(src='b.png', alt='New', label='After')]))
             data, warnings = r.validate(data, Path(tmp))
-            self.assertEqual(warnings, [])
+            self.assertEqual([w for w in warnings if not w.startswith(('No mock', 'No research'))], [])
             data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
             page = r.page(data)
             self.assertIn('class="gallery"', page)
@@ -173,7 +176,7 @@ class DeckTests(unittest.TestCase):
         data = deck()
         data['slides'] = [status('a'), status('b'), question, status('c'), decision()]
         data, _ = r.validate(data)
-        self.assertEqual(data['seconds'], 20 + 35 + 35 + 40 + 35 + 50 + 25)
+        self.assertEqual(data['seconds'], 25 + 35 + 35 + 40 + 35 + 50 + 25)
         data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
         page = r.page(data)
         self.assertIn('Question 1', page)
@@ -234,7 +237,7 @@ class DeckTests(unittest.TestCase):
     def test_usage_slide_goal_and_cover_line_render(self):
         data, warnings = r.validate(self.usage_deck())
         self.assertFalse(any('goal' in w or 'usage' in w for w in warnings))
-        self.assertEqual(data['seconds'], 20 + 35 + 50 + 40 + 50 + 25)
+        self.assertEqual(data['seconds'], 25 + 35 + 50 + 40 + 50 + 25)
         data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
         page = r.page(data)
         self.assertIn('What the usage data says · search event log, Oct 1 to 26', page)
@@ -310,6 +313,65 @@ class DeckTests(unittest.TestCase):
         _, warnings = r.validate(data)
         self.assertTrue(any('goal visual' in w for w in warnings))
 
+    def test_mission_is_on_every_cover_and_an_unsure_one_is_asked_first(self):
+        data = deck()
+        data.pop('mission')
+        with self.assertRaisesRegex(ValueError, 'mission'):
+            r.validate(data)
+        data = deck()
+        data['mission'].pop('source')
+        with self.assertRaisesRegex(ValueError, 'source'):
+            r.validate(data)
+        data = deck()
+        data['mission']['roadmap'][0]['state'] = 'soon'
+        with self.assertRaisesRegex(ValueError, 'state'):
+            r.validate(data)
+        data = deck()
+        data['mission']['clarity'] = 'inferred'
+        with self.assertRaisesRegex(ValueError, 'id mission'):
+            r.validate(data)
+        ask = dict(kind='question', id='mission', question='Is this the goal?', context='I guessed it.', default='Keep it.')
+        data['slides'].insert(0, ask)
+        validated, _ = r.validate(data)
+        validated.update(deck_id='d1', created_at='2026-10-27T00:00:00')
+        page = r.page(validated)
+        self.assertIn('class="mission mission-inferred"', page)
+        self.assertIn('My reading. Confirm?', page)
+        self.assertIn('class="road-done"', page)
+
+    def test_mocks_and_user_research_render_as_calls(self):
+        data = deck()
+        mock = dict(kind='mock', id='lookalikes', title='Show in-stock lookalikes', lede='Sold-out items stop topping the list.', cost='Three days.', default='Park it.', visual=dict(type='image', src='data:image/png;base64,AA', alt='Mock'))
+        research = dict(kind='research', id='users', title='Ask stores two things', lede='Each answer changes the plan.', default='Send the first.', asks=[dict(who='Managers', question='Why did you stop?', learn='Training or search.', how='Email'), dict(who='Night shift', question='What do you look up?', learn='A shortcut.', how='Poll')])
+        data['slides'] = [status('a'), mock, status('b'), status('c'), research, decision()]
+        validated, warnings = r.validate(data)
+        self.assertFalse(any('No mock' in w or 'No research' in w for w in warnings))
+        validated.update(deck_id='d1', created_at='2026-10-27T00:00:00')
+        page = r.page(validated)
+        self.assertIn('data-kind="mock"', page)
+        self.assertIn('Build it', page)
+        self.assertIn('class="ask-item" data-research="users"', page)
+        self.assertIn('1 mock to react to', page)
+        bad = copy.deepcopy(data)
+        bad['slides'][1]['visual'] = dict(type='stats', stats=[dict(value='1', label='x')])
+        with self.assertRaisesRegex(ValueError, 'picture of the idea'):
+            r.validate(bad)
+        bad = copy.deepcopy(data)
+        bad['slides'][4]['asks'] = bad['slides'][4]['asks'][:1]
+        with self.assertRaisesRegex(ValueError, '2 to 4 asks'):
+            r.validate(bad)
+        bad = copy.deepcopy(data)
+        bad['slides'][4]['asks'][0]['extra'] = 1
+        with self.assertRaisesRegex(ValueError, 'does not know'):
+            r.validate(bad)
+        bad = copy.deepcopy(data)
+        bad['slides'] = [status('a'), mock, dict(mock, id='m2'), dict(mock, id='m3'), decision()]
+        with self.assertRaisesRegex(ValueError, 'at most 2 mocks'):
+            r.validate(bad)
+        _, warnings = r.validate(deck())
+        self.assertTrue(any('No mock' in w for w in warnings))
+        self.assertTrue(any('No research' in w for w in warnings))
+
     def test_sample_deck_renders_clean_with_shared_components(self):
         sample = SCRIPT.parent.parent / 'assets' / 'sample' / 'deck.json'
         data, warnings = r.validate(json.loads(sample.read_text()), sample.parent)
@@ -327,7 +389,7 @@ class DeckTests(unittest.TestCase):
         text = starter.read_text()
         for kind in r.VISUALS:
             self.assertIn(f'with a {kind} visual', text)
-        for kind in ('decision slide (made)', 'decision slide (upcoming)', 'question slide'):
+        for kind in ('decision slide (made)', 'decision slide (upcoming)', 'question slide', 'mock slide', 'research slide'):
             self.assertIn(kind, text)
 
     def test_cli_archives_each_deck_and_finds_latest(self):

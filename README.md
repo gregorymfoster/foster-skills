@@ -8,11 +8,13 @@ Personal agent skills, one directory per skill under `skills/`. The repository i
   illustrated post on the personal research site.
 - `foster-draft-review`: annotated HTML feedback on personal drafts, with the source
   left untouched and reviews archived locally for later comparison.
-- `foster-project-checkin`: a five-minute slide briefing on an AI-run project, as
-  one HTML page, with status slides and decision slides interleaved so you can
-  make the calls while the agent keeps working. Each deck also digs into the
-  product's usage data: adoption, surprises, data problems, and progress toward
-  the goal.
+- `foster-project-checkin`: a five-to-six-minute slide briefing on an AI-run
+  project, as one HTML page, with status slides and decision slides interleaved
+  so you can make the calls while the agent keeps working. Each deck opens with
+  the mission and roadmap, digs into the product's usage data (adoption,
+  surprises, data problems, progress toward the goal), and thinks like a PM:
+  mocks of what to build next for your reaction, and the questions for users
+  that would teach us the most.
 - `foster-fuzz`: drives an app's real UI like a crowd of realistic users,
   through every flow and state it can reach, and reports the bugs and UI/UX
   problems it finds with screenshots and repro steps.

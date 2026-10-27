@@ -37,6 +37,39 @@
   ],
   "slides": [
     {
+      "kind": "question",
+      "id": "mission",
+      "question": "Is this still the mission, and is the order on the roadmap right?",
+      "context": "Nobody has written the goal down since kickoff. I pieced this together from the kickoff notes and the roadmap file. If customers matter more than staff now, the plan flips.",
+      "visual": {
+        "type": "flow",
+        "steps": [
+          {
+            "label": "Staff search",
+            "detail": "Shipped Oct 14",
+            "state": "done"
+          },
+          {
+            "label": "Every store weekly",
+            "detail": "112 of 150 stores",
+            "state": "moving"
+          },
+          {
+            "label": "Customer search",
+            "detail": "Waiting on your call",
+            "state": "blocked"
+          }
+        ]
+      },
+      "suggestions": [
+        "Yes, that's it",
+        "Customers come first now",
+        "Let's talk it through"
+      ],
+      "default": "Keep this mission and this order.",
+      "say": "Before the news, a quick check that I'm aiming at the right thing."
+    },
+    {
       "kind": "status",
       "title": "Search is live for every staff member",
       "lede": "Anyone on staff can type a product name and get the best match first. Customers still see the old page.",
@@ -181,61 +214,62 @@
       ]
     },
     {
-      "kind": "question",
-      "id": "out-of-stock",
-      "question": "When the exact item is sold out, should staff see similar items first?",
-      "context": "Right now a sold-out exact match still ranks first. Staff in two stores asked for in-stock lookalikes on top. I don't know which matters more to you.",
-      "visual": {
-        "type": "image",
-        "src": "search-after.svg",
-        "alt": "Results with the exact mug first and similar mugs below"
-      },
-      "suggestions": [
-        "Exact match first, always",
-        "In-stock lookalikes first",
-        "Ask the store managers"
-      ],
-      "default": "Keep the exact match first.",
-      "needed_by": "Oct 31"
-    },
-    {
-      "kind": "status",
-      "title": "Two old apps still use the old search",
-      "lede": "The warehouse scanner and the returns desk call the old search directly. Moving them is small, but each needs a day of testing in the store.",
-      "points": [
+      "kind": "research",
+      "id": "user-questions",
+      "title": "Three questions to store staff would settle the next month of work",
+      "lede": "Each answer changes what I build next. Tick the ones worth sending and I'll put them in the weekly store email.",
+      "asks": [
         {
-          "text": "Warehouse scanner",
-          "state": "risk"
+          "who": "Stores that tried search once",
+          "question": "What made you go back to the old way?",
+          "learn": "Whether the 88 missing stores need training or a better search.",
+          "how": "Two-line email to the 40 store managers"
         },
         {
-          "text": "Returns desk",
-          "state": "risk"
+          "who": "Night-shift staff",
+          "question": "What do you search for most at night?",
+          "learn": "Whether night restocking needs its own shortcut.",
+          "how": "One-tap poll on the search page after 8pm"
+        },
+        {
+          "who": "Customers at the counter",
+          "question": "Would you look this up yourself on your phone?",
+          "learn": "Whether the customer launch is worth doing before filters.",
+          "how": "Staff ask five customers each this week"
         }
       ],
-      "visual": {
-        "type": "bars",
-        "question": "Searches per day still hitting the old system",
-        "bars": [
-          {
-            "label": "Warehouse scanner",
-            "value": 1200,
-            "highlight": true
-          },
-          {
-            "label": "Returns desk",
-            "value": 300,
-            "highlight": true
-          },
-          {
-            "label": "Staff search page",
-            "value": 0
-          }
-        ]
-      },
-      "why": "Until they move, we pay to run two search systems.",
+      "default": "Send the first one only.",
       "evidence": [
         {
-          "label": "Request logs, Oct 20 to 26"
+          "label": "Usage slide: stores that never came back"
+        }
+      ]
+    },
+    {
+      "kind": "mock",
+      "id": "soldout-lookalikes",
+      "title": "When the mug is sold out, show what's on the shelf instead",
+      "lede": "Today a sold-out item still tops the list and staff scroll to find something in stock. This mock moves two in-stock lookalikes up and says when the original is back.",
+      "visual": {
+        "type": "slider",
+        "before": {
+          "src": "search-after.svg",
+          "alt": "Today: the sold-out mug first, lookalikes below",
+          "label": "Today"
+        },
+        "after": {
+          "src": "search-mock-soldout.svg",
+          "alt": "Mock: sold-out mug marked, two in-stock lookalikes on top",
+          "label": "Mock"
+        },
+        "caption": "Drawn by hand, nothing is built. Same query as the before and after slide."
+      },
+      "why": "Staff in two stores asked for exactly this, and it targets the stores that tried search once and stopped.",
+      "cost": "About three days, using stock levels we already load.",
+      "default": "Park it until filters ship.",
+      "evidence": [
+        {
+          "label": "Store feedback form, Oct 21 and Oct 24"
         }
       ]
     },
@@ -270,5 +304,32 @@
   "next": [
     "Filters by size and color",
     "Moving the warehouse scanner to the new search"
-  ]
+  ],
+  "mission": {
+    "statement": "Every store's staff can find any product in seconds, so customers get an answer at the shelf instead of a shrug.",
+    "roadmap": [
+      {
+        "label": "Staff search",
+        "state": "done",
+        "when": "Oct 14"
+      },
+      {
+        "label": "Every store using it weekly",
+        "state": "now",
+        "when": "Dec 1"
+      },
+      {
+        "label": "Customer search on the website",
+        "state": "next",
+        "when": "December"
+      },
+      {
+        "label": "Retire the old search",
+        "state": "later"
+      }
+    ],
+    "progress": "Step one shipped. Step two is at 112 of 150 stores and stalling, so the customer launch is the next real call.",
+    "clarity": "inferred",
+    "source": "Kickoff notes, Sep 12, and the roadmap file"
+  }
 }

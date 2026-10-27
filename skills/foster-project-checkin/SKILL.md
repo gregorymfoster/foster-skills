@@ -1,11 +1,11 @@
 ---
 name: foster-project-checkin
-description: Brief Greg on an AI-run project as an IC engineer briefing a director of engineering. Gathers recent activity (git, PRs, threads, memory, plans), digs into the product's usage data (adoption, surprises, data problems, progress toward the goal), and renders a five-minute slide deck as one HTML file, never a canvas or PowerPoint, that alternates status slides with decision slides, covering past calls he may want to reverse and upcoming calls that need him, each with options, a recommendation, and a default. Use when he says "check in", "brief me", "where are we", or "catch me up" in a Cursor workspace, Claude Code repo, Claude project, or any long-running work stream.
+description: Brief Greg on an AI-run project as an IC engineer briefing a director of engineering. Gathers recent activity (git, PRs, threads, memory, plans), digs into the product's usage data (adoption, surprises, data problems, progress toward the goal), and renders a five-to-six-minute slide deck as one HTML file, never a canvas or PowerPoint. The cover always states the mission, roadmap and progress (and asks him to confirm the mission when it is a guess). The deck alternates status slides with calls: past decisions he may want to reverse, upcoming ones that need him, mocks of features and design changes for his reaction, and the questions for users that would teach us the most. Use when he says "check in", "brief me", "where are we", or "catch me up" in a Cursor workspace, Claude Code repo, Claude project, or any long-running work stream.
 ---
 
 # Project Check-in
 
-Greg is dropping into a project you have been working on, and he is playing director of engineering. You are the IC who did the work. Give him a five-minute slide briefing: what happened, what it adds up to, what it looks like, whether anyone is using it, and the calls that are his to make. Status and decisions alternate so he weighs in while the context is fresh, not in a pile at the end. Then go back to work.
+Greg is dropping into a project you have been working on, and he is playing director of engineering. You are the IC who did the work. Give him a five-to-six-minute slide briefing: what we are trying to achieve and how far along we are, what happened, what it adds up to, what it looks like, whether anyone is using it, what we could build next, and the calls that are his to make. Status and decisions alternate so he weighs in while the context is fresh, not in a pile at the end. Then go back to work.
 
 ## Who you are writing for
 
@@ -70,7 +70,15 @@ Before writing the story, find out whether anyone is using the thing and whether
 
 This step never blocks the check-in. If nothing measures the project, say so on the cover (`usage.status` of `no-data`, with where you looked), ask for the goal with a question slide if there isn't one, and offer a decision on how to start measuring. Never fill the gap with a made-up or unlabeled proxy number.
 
-## Step 3: Find the story and the calls
+## Step 3: Name the mission and where we are on the roadmap
+
+Every deck opens on the same three things: the mission, the roadmap toward it, and how far along we are. Greg should never have to reconstruct what the project is for from the status slides.
+
+Look for the mission in what Greg actually said: the kickoff message, the project's instructions, a goal he named at an earlier check-in (the last `calls.md`), project memory, a roadmap or spec file. Write it as one outcome sentence for a person ("Every store's staff can find any product in seconds"), not a feature list. Lay out the roadmap as two to six milestones in plain words, each `done`, `now`, `next` or `later`, with a date when there is one. The progress line says where the work sits on that roadmap, using the usage numbers when you have them.
+
+Then be honest about how sure you are. Mark it `confirmed` only when Greg said or approved it, and name where (`source`). If you assembled it from scattered evidence, it is `inferred`. If the evidence disagrees with itself (the code is heading one way, his last message another) or there is nothing to go on, it is `unclear`. Either way, the first call in the deck is a question slide with id `mission` asking him to confirm or correct it, with the roadmap as a `flow` beside it and quick answers such as "Yes, that's it". A mission that was confirmed weeks ago but that the work has drifted from deserves the same question. Once he answers, the mission goes into project memory, and later decks mark it `confirmed`.
+
+## Step 4: Find the story and the calls
 
 Write the headline first: the net effect in one plain sentence that Greg could repeat to his own boss without explaining a single word. Then pick two to four status points that support or complicate it. Include what slipped, what you dropped, and what is fragile.
 
@@ -80,11 +88,21 @@ Upcoming decisions are forks ahead: what to build next, build versus buy, scope 
 
 Some things you need from him have no options you can write: which customers matter most, whether a screenshot matches what he saw, what a vague ask meant. Make those question slides, at most three, each with what you will assume if he doesn't answer. Don't turn a real decision into a question to dodge making a recommendation.
 
-Aim for three to five calls total, with at least one of each timing when the evidence supports it. If there is honestly no past decision worth revisiting, say so out loud on a status slide instead of inventing one; the renderer only warns.
+Aim for three to five decisions and questions, with at least one of each timing when the evidence supports it. If there is honestly no past decision worth revisiting, say so out loud on a status slide instead of inventing one; the renderer only warns.
 
-## Step 4: Build the deck
+## Step 5: Think like a PM
 
-Plan six to nine slides for about five minutes. The renderer adds the cover and the closing recap. A typical arc runs: what it does now (status with a screenshot), the past call that raises (decision), a before and after of the main change (visual), the call it sets up (decision), what the usage data says (usage slide with the goal tracker), the call that raises (decision or question), and what you need from him (decision). Every deck carries the `usage` summary for the cover, and a usage slide whenever there is data. Place each decision right after the slide that gives its context. A question slide can stand in for a decision anywhere in that arc. The renderer rejects a deck whose first call comes after the third slide, or that runs three information slides in a row.
+Spend a few minutes as the project's product manager before you build the deck. The status slides say what happened. This step asks what we should learn and build next, and gets Greg's reaction while it is still cheap to change course. Start from the mission and the usage findings: where is the gap between what the product does and what the mission needs, and which unknown, if answered, would most change what we build?
+
+**Questions that steer.** List the questions whose answers would move the plan the most, then keep the best two to four. A good question has answers that point in different directions ("What made you go back to the old way?" splits training from product fixes). A weak one gets the same answer from everyone, or one we would ignore. Each question goes to whoever can actually answer it. Questions only Greg can answer (who the product is really for, what success looks like, which user he cares about most) become question slides. Questions for users go on one research slide: who to ask, the exact wording, what each likely answer would change, and the cheapest way to ask (a one-tap poll, a two-line email, a text to three friends who use it). Greg ticks the ones worth sending. Nothing goes to users unless he ticks it.
+
+**Mocks to react to.** Pick one or two ideas worth showing: a new feature, or a change to the UI or flow, that the evidence points to (a usage finding, a complaint, a roadmap step, a rough edge you saw while screenshotting). Show it as a picture, never a paragraph. Build the mock outside the product: a static HTML page that reuses the app's real stylesheet and components, rendered with a headless browser to a PNG the same size as a real screenshot of today's screen, or an SVG drawn over that screenshot. Put it beside today's screen with a `slider` or `gallery` so the change is obvious. Don't build the feature, push a branch, or touch the product to make a mock. Use stock or sample content, and respect the project's privacy rules as for any screenshot. Each mock slide says what the user gets (title), the problem it fixes (lede), why this idea over others (`why`), a rough cost, and your default, usually "park it". Greg answers with Build it, Change it or Not now, plus a note.
+
+Keep this step proportionate. One research slide and one or two mocks fit in about a minute and a half. If the project is a weekend toy or the evidence gives you nothing worth mocking, skip the mock and say why in `gaps`; the renderer only warns.
+
+## Step 6: Build the deck
+
+Plan seven to ten slides for five to six minutes. The renderer adds the cover (with the mission block) and the closing recap. A typical arc runs: the mission question when the mission isn't confirmed, what it does now (status with a screenshot), the past call that raises (decision), a before and after of the main change (visual), what the usage data says (usage slide with the goal tracker), the questions for users that data raises (research), the feature or design change you'd build next (mock), and what you need from him (decision). Trim status slides to make room for the PM slides rather than letting the deck run long. Every deck carries the `usage` summary for the cover, and a usage slide whenever there is data. Place each decision right after the slide that gives its context. A question, mock or research slide counts as a call and can stand in for a decision anywhere in that arc. The renderer rejects a deck whose first call comes after the third slide, that runs three information slides in a row, or that leaves an unconfirmed mission unasked.
 
 Each slide carries one idea that Greg can absorb in about twenty seconds. Titles are plain-language claims, not topics. The `lede` says what changed for the user. Use two or three short points at most. `why` says why it matters. `say` is what you would say out loud, one or two conversational sentences, and it shows as a voiceover strip. Sources go in `evidence`.
 
@@ -92,7 +110,7 @@ Write in Greg's voice rules for anything a human reads. Mix short sentences with
 
 Write the deck JSON described in [the deck data guide](references/deck-data.md) to a temporary work folder, next to the images it uses. Pick each visual from the table in [components.md](references/components.md).
 
-## Step 5: Render and deliver
+## Step 7: Render and deliver
 
 ```sh
 python3 <skill-directory>/scripts/render_deck.py --deck <deck.json> --archive <archive>
@@ -104,13 +122,13 @@ Look at the rendered deck before you send it, at desktop and phone widths and in
 
 Deliver `deck.html` and only `deck.html` (see One HTML file, nothing else). If an Artifact or page-publishing tool is available (Claude), publish `deck.html` (it is self-contained) and link it. Otherwise (Cursor, Codex, ChatGPT and the rest) write it to disk, open it in the browser if you can, and always end your message with the one line the renderer prints, "Open the deck in a browser: file://…", so he can click straight to it. A hand-built deck gets the same line with its own path. If the host has native decision cards, also post the single most time-sensitive call as one card (a one-way door if there is one), so he can answer from a phone. If he answers the card, record it and drop that call from the deck.
 
-Keep the chat message to two or three plain sentences: the headline, how many calls are waiting, which one is most urgent, and what you are continuing on in the meantime. The deck is the deliverable.
+Keep the chat message to two or three plain sentences: the headline, how many calls are waiting (and whether the mission needs his confirmation), which one is most urgent, and what you are continuing on in the meantime. The deck is the deliverable.
 
-When rendering behavior changes, check the deck in a browser at desktop and phone widths and in dark mode. Step through with the arrow keys, pick options, write a note, and confirm "Copy my calls" produces the reply text.
+When rendering behavior changes, check the deck in a browser at desktop and phone widths and in dark mode. Step through with the arrow keys, pick options, react to a mock, tick a research question, write a note, and confirm "Copy my calls" produces the reply text.
 
-## Step 6: Apply the calls and keep working
+## Step 8: Apply the calls and keep working
 
-Greg answers by pasting the text from "Copy my calls", by tapping a card, or in his own words. Each call he makes is his approval for that path, and it covers what the option described. Write his calls to `calls.md` in the deck's archive folder, then record each decision wherever the project keeps decisions (project memory, a decision log, an ADR), with the date and his reason if he gave one. A goal he names in answer to a question goes into project memory with the usage recipe, so the next check-in tracks it. A note that states a standing rule ("always fix tests, you don't have to ask") goes into the project's rules file too. Hand each call to whoever owns that work, change the plan to match, and say in one line what you changed.
+Greg answers by pasting the text from "Copy my calls", by tapping a card, or in his own words. Each call he makes is his approval for that path, and it covers what the option described. Write his calls to `calls.md` in the deck's archive folder, then record each decision wherever the project keeps decisions (project memory, a decision log, an ADR), with the date and his reason if he gave one. A goal he names in answer to a question goes into project memory with the usage recipe, so the next check-in tracks it. A note that states a standing rule ("always fix tests, you don't have to ask") goes into the project's rules file too. His answer to the mission question goes into project memory as the mission and roadmap, marked confirmed with the date. For mocks, Build it puts the idea on the roadmap as planned work, Change it means you revise the mock with his note and show it again next time, and Not now gets logged so you don't pitch it again without new evidence. Ticked research questions are his approval to send exactly those questions, the way the card described; collect the answers and open the next deck's usage or status slide with what users said. Hand each call to whoever owns that work, change the plan to match, and say in one line what you changed.
 
 If he never answers, follow the defaults for cheap and costly calls and carry one-way calls to the next check-in as still open. The next deck opens with follow-through: what he decided, and what happened because of it.
 

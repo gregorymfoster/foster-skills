@@ -4,9 +4,11 @@
   const track = document.getElementById('track');
   const key = 'checkin:' + meta.deck;
   // Every call is read from its slide's markup, so a hand-built deck needs no separate list to keep in sync.
-  const calls = slides.filter(s => s.dataset.kind === 'decision' || s.dataset.kind === 'question').map(s => ({
+  const ASKS = ['decision', 'question', 'mock', 'research'];
+  const optionsOf = {decision: '.option strong', question: '.chip', mock: '.chip', research: '.ask-item strong'};
+  const calls = slides.filter(s => ASKS.includes(s.dataset.kind)).map(s => ({
     kind: s.dataset.kind, id: s.dataset.id, question: s.querySelector('h2').textContent, timing: s.dataset.timing,
-    options: [...s.querySelectorAll(s.dataset.kind === 'decision' ? '.option strong' : '.chip')].map(o => o.textContent),
+    options: [...s.querySelectorAll(optionsOf[s.dataset.kind])].map(o => o.textContent),
     recommended: Number(s.dataset.recommended), current: s.dataset.current === undefined ? undefined : Number(s.dataset.current),
     default: s.dataset.default
   }));
@@ -21,8 +23,9 @@
   slides.forEach((s, i) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = s.dataset.kind === 'decision' ? 'call' : s.dataset.kind === 'question' ? 'ask' : '';
-    b.setAttribute('aria-label', 'Slide ' + (i + 1) + (s.dataset.kind === 'decision' ? ', a call for you' : s.dataset.kind === 'question' ? ', a question for you' : ''));
+    const k = s.dataset.kind;
+    b.className = k === 'decision' ? 'call' : ASKS.includes(k) ? 'ask' : '';
+    b.setAttribute('aria-label', 'Slide ' + (i + 1) + ({decision: ', a call for you', question: ', a question for you', mock: ', a mock to react to', research: ', questions for users'}[k] || ''));
     b.addEventListener('click', () => show(i));
     track.appendChild(b);
   });
@@ -38,9 +41,17 @@
     history.replaceState(null, '', '#' + (current + 1));
   }
 
+  // The recap line and the copied reply both say what kind of answer each ask got.
+  const answerWord = {decision: 'Call', question: 'Answer', mock: 'Reaction', research: 'Ask users'};
+  const missing = {decision: 'No call yet, so I go with: ', question: 'No answer yet, so I assume: ', mock: 'No reaction yet, so: ', research: 'Nothing picked, so: '};
+
   function pickText(c) {
     const i = state.picks[c.id];
-    if (c.kind === 'question') {
+    if (c.kind === 'research') {
+      const picked = (Array.isArray(i) ? i : []).slice().sort().map(n => c.options[n]);
+      return picked.length ? picked.join(' | ') : null;
+    }
+    if (c.kind === 'question' || c.kind === 'mock') {
       const parts = [i === undefined ? '' : c.options[i], state.notes[c.id] || ''].filter(Boolean);
       return parts.length ? parts.join('. ') : null;
     }
@@ -59,9 +70,9 @@
       const p = document.createElement('span');
       const pick = pickText(c);
       p.className = pick ? 'pick' : 'none';
-      p.textContent = pick || (c.kind === 'question' ? 'No answer yet, so I assume: ' : 'No call yet, so I go with: ') + c.default;
+      p.textContent = pick || missing[c.kind] + c.default;
       li.append(q, p);
-      if (state.notes[c.id] && c.kind !== 'question') { const n = document.createElement('span'); n.className = 'q'; n.textContent = 'Note: ' + state.notes[c.id]; li.append(n); }
+      if (state.notes[c.id] && (c.kind === 'decision' || c.kind === 'research')) { const n = document.createElement('span'); n.className = 'q'; n.textContent = 'Note: ' + state.notes[c.id]; li.append(n); }
       list.appendChild(li);
     });
   }
@@ -70,9 +81,8 @@
     const lines = ['Check-in calls for ' + meta.project + ' (' + meta.date + ', deck ' + meta.deck + ')'];
     calls.forEach((c, n) => {
       lines.push((n + 1) + '. ' + c.question);
-      if (c.kind === 'question') lines.push('   Answer: ' + (pickText(c) || 'no answer, assume: ' + c.default));
-      else lines.push('   Call: ' + (pickText(c) || 'no call, go with your default: ' + c.default));
-      if (state.notes[c.id] && c.kind !== 'question') lines.push('   Note: ' + state.notes[c.id]);
+      lines.push('   ' + answerWord[c.kind] + ': ' + (pickText(c) || 'nothing yet, go with your default: ' + c.default));
+      if (state.notes[c.id] && (c.kind === 'decision' || c.kind === 'research')) lines.push('   Note: ' + state.notes[c.id]);
     });
     if (state.notes._general) lines.push('Also: ' + state.notes._general);
     return lines.join('\n');
@@ -86,6 +96,19 @@
     b.addEventListener('click', () => {
       if (state.picks[id] === opt) delete state.picks[id]; else state.picks[id] = opt;
       document.querySelectorAll(group).forEach(o => o.setAttribute('aria-pressed', state.picks[id] === Number(o.dataset.option)));
+      save();
+    });
+  });
+  // Research asks are a checklist: tick as many as should go out.
+  document.querySelectorAll('.ask-item').forEach(b => {
+    const id = b.dataset.research, opt = Number(b.dataset.option);
+    const picked = () => Array.isArray(state.picks[id]) ? state.picks[id] : [];
+    b.setAttribute('aria-pressed', picked().includes(opt));
+    b.addEventListener('click', () => {
+      const now = picked().filter(n => n !== opt);
+      if (now.length === picked().length) now.push(opt);
+      state.picks[id] = now;
+      b.setAttribute('aria-pressed', now.includes(opt));
       save();
     });
   });
@@ -125,7 +148,7 @@
   let touch = null;
   document.getElementById('stage').addEventListener('touchstart', e => { touch = e.touches[0]; }, {passive: true});
   document.getElementById('stage').addEventListener('touchend', e => {
-    if (!touch || e.target.closest('textarea,.option,.chip,.slider')) return;
+    if (!touch || e.target.closest('textarea,.option,.chip,.ask-item,.slider')) return;
     const dx = e.changedTouches[0].clientX - touch.clientX, dy = e.changedTouches[0].clientY - touch.clientY;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) show(current + (dx < 0 ? 1 : -1));
     touch = null;

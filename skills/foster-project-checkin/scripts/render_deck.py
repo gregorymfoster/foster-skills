@@ -12,9 +12,11 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-VERSION = '2.1.0'
-KINDS = ('status', 'visual', 'usage', 'decision', 'question')
+VERSION = '2.2.0'
+KINDS = ('status', 'visual', 'usage', 'decision', 'question', 'mock', 'research')
 INFO_KINDS = ('status', 'visual', 'usage')
+# Slides that ask the director for something. Each one counts as weighing in, so it breaks a run of information slides.
+CALL_KINDS = ('decision', 'question', 'mock', 'research')
 TIMINGS = ('made', 'upcoming')
 REVERSIBILITY = ('cheap', 'costly', 'one-way')
 STATES = ('done', 'moving', 'blocked', 'dropped', 'risk')
@@ -23,14 +25,23 @@ USAGE_STATES = ('up', 'down', 'flat', 'surprise', 'data-gap', 'blocked')
 # Where the project stands against its goal. The first four need data and a goal; the last two are the honest fallbacks.
 GOAL_STATUS = ('on-track', 'at-risk', 'off-track', 'too-early')
 USAGE_STATUS = GOAL_STATUS + ('no-goal', 'no-data')
+# Where a roadmap step stands, and how sure we are that the mission is the one the director wants.
+ROADMAP_STATES = ('done', 'now', 'next', 'later')
+CLARITY = ('confirmed', 'inferred', 'unclear')
+CLARITY_LABELS = {'confirmed': 'Confirmed by you', 'inferred': 'My reading. Confirm?', 'unclear': 'Unclear. I need you'}
+# A mock gets one of three fixed reactions, so every deck asks for feedback the same way.
+REACTIONS = ('Build it', 'Change it', 'Not now')
 STATUS_LABELS = {'on-track': 'On track', 'at-risk': 'At risk', 'off-track': 'Off track', 'too-early': 'Too early to tell', 'no-goal': 'No goal set', 'no-data': 'No usage data'}
 VISUALS = ('image', 'gallery', 'slider', 'bars', 'line', 'stats', 'goal', 'flow', 'compare', 'code')
 TONES = ('good', 'bad', 'neutral')
-SECONDS = {'cover': 20, 'status': 35, 'visual': 35, 'usage': 40, 'decision': 50, 'question': 40, 'close': 25}
+SECONDS = {'cover': 25, 'status': 35, 'visual': 35, 'usage': 40, 'decision': 50, 'question': 40, 'mock': 45, 'research': 45, 'close': 25}
 MAX_DECISIONS = 5
 MAX_QUESTIONS = 3
-SOFT_LIMIT = 330
-HARD_LIMIT = 420
+MAX_MOCKS = 2
+MAX_SLIDES = 12
+SOFT_LIMIT = 390
+HARD_LIMIT = 480
+MOCK_VISUALS = ('image', 'gallery', 'slider')
 MAX_INFO_RUN = 2
 IMAGE_TYPES = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml'}
 SLUG = r'[a-z0-9]+(?:-[a-z0-9]+)*'
@@ -38,9 +49,11 @@ SLUG = r'[a-z0-9]+(?:-[a-z0-9]+)*'
 # and a misspelled field fails loudly instead of silently vanishing from the deck.
 INFO_FIELDS = {'kind', 'title', 'lede', 'body', 'why', 'say', 'evidence', 'seconds', 'visual'}
 FIELDS = {
-    'deck': {'project', 'project_id', 'window', 'what_it_is', 'headline', 'hero', 'metrics', 'usage', 'gaps', 'slides', 'next',
+    'deck': {'project', 'project_id', 'window', 'what_it_is', 'mission', 'headline', 'hero', 'metrics', 'usage', 'gaps', 'slides', 'next',
              'schema_version', 'deck_id', 'created_at', 'skill_version', 'seconds'},
     'usage_summary': {'status', 'goal', 'sources', 'searched'},
+    'mission': {'statement', 'roadmap', 'progress', 'clarity', 'source'},
+    'milestone': {'label', 'state', 'when'},
     'source': {'name', 'as_of', 'url'},
     'status': INFO_FIELDS | {'points'},
     'visual': INFO_FIELDS,
@@ -48,6 +61,9 @@ FIELDS = {
     'decision': {'kind', 'id', 'timing', 'question', 'context', 'options', 'current', 'recommended', 'recommendation', 'default',
                  'reversibility', 'reversibility_note', 'needed_by', 'evidence', 'say', 'seconds'},
     'question': {'kind', 'id', 'question', 'context', 'suggestions', 'default', 'needed_by', 'visual', 'evidence', 'say', 'seconds'},
+    'mock': {'kind', 'id', 'title', 'lede', 'visual', 'why', 'cost', 'default', 'evidence', 'say', 'seconds'},
+    'research': {'kind', 'id', 'title', 'lede', 'asks', 'default', 'evidence', 'say', 'seconds'},
+    'ask': {'who', 'question', 'learn', 'how'},
     'image': {'type', 'src', 'alt', 'caption'},
     'gallery': {'type', 'images', 'caption'},
     'slider': {'type', 'before', 'after', 'caption'},
@@ -282,10 +298,11 @@ def validate(data, base=Path('.')):
         known(metric, 'metric', 'Metric')
         text(metric, 'value', 'Metric')
         text(metric, 'label', 'Metric')
+    mission = validate_mission(data.get('mission'))
     usage = validate_usage(data.get('usage'))
     slides = data.get('slides')
-    if not isinstance(slides, list) or not 3 <= len(slides) <= 10:
-        raise ValueError('slides must be a list of 3 to 10 content slides.')
+    if not isinstance(slides, list) or not 3 <= len(slides) <= MAX_SLIDES:
+        raise ValueError(f'slides must be a list of 3 to {MAX_SLIDES} content slides.')
     ids, warnings, run, first_call = set(), [], 0, None
     total = SECONDS['cover'] + SECONDS['close']
     for number, slide in enumerate(slides, 1):
@@ -299,8 +316,8 @@ def validate(data, base=Path('.')):
             raise ValueError(f'{label} seconds must be a whole number from 10 to 90.')
         total += seconds
         text(slide, 'say', label, required=False)
-        if kind in ('decision', 'question'):
-            (validate_decision if kind == 'decision' else validate_question)(slide, label, ids, base)
+        if kind in CALL_KINDS:
+            {'decision': validate_decision, 'question': validate_question, 'mock': validate_mock, 'research': validate_research}[kind](slide, label, ids, base)
             first_call = first_call or number
             run = 0
             continue
@@ -343,6 +360,14 @@ def validate(data, base=Path('.')):
         raise ValueError(f'Keep a check-in to at most {MAX_DECISIONS} decisions.')
     if questions > MAX_QUESTIONS:
         raise ValueError(f'Keep a check-in to at most {MAX_QUESTIONS} open questions; turn the rest into decisions with options.')
+    if sum(s['kind'] == 'mock' for s in slides) > MAX_MOCKS:
+        raise ValueError(f'Show at most {MAX_MOCKS} mocks; pick the ones whose answer changes what gets built next.')
+    if sum(s['kind'] == 'research' for s in slides) > 1:
+        raise ValueError('Put every question for users on one research slide.')
+    if mission['clarity'] != 'confirmed':
+        calls = [s for s in slides if s['kind'] in CALL_KINDS]
+        if calls[0]['kind'] != 'question' or calls[0]['id'] != 'mission':
+            raise ValueError('The mission is not confirmed, so make the first call a question slide with id mission asking the director to confirm or correct it.')
     usage_slides = sum(s['kind'] == 'usage' for s in slides)
     if usage['status'] == 'no-data' and usage_slides:
         raise ValueError('A usage slide needs usage data. With status no-data, say so on the cover and propose how to start measuring.')
@@ -363,6 +388,10 @@ def validate(data, base=Path('.')):
             warnings.append(f'No {timing} decision. Fine if the evidence has none; do not invent one.')
     if not any(s['kind'] == 'visual' for s in slides):
         warnings.append('No visual slide shows what the work looks like.')
+    if not any(s['kind'] == 'mock' for s in slides):
+        warnings.append('No mock. Show one feature or design change you would build next and ask for a reaction.')
+    if not any(s['kind'] == 'research' for s in slides):
+        warnings.append('No research slide. Add the questions for users whose answers would most change the plan.')
     info = [s for s in slides if s['kind'] in INFO_KINDS]
     pictured = sum(1 for s in info if s.get('visual'))
     if info and pictured * 2 < len(info):
@@ -410,14 +439,48 @@ def validate_usage(usage):
     return usage
 
 
+def validate_mission(mission):
+    """The cover's mission block: what the project is for, the roadmap toward it, and how sure we are that it is right."""
+    if not isinstance(mission, dict):
+        raise ValueError('Deck needs mission: the statement, the roadmap and progress along it, and whether the director has confirmed it. When it is a guess, say so with clarity inferred or unclear.')
+    known(mission, 'mission', 'Mission')
+    text(mission, 'statement', 'Mission')
+    text(mission, 'progress', 'Mission')
+    text(mission, 'source', 'Mission', required=False)
+    if len(mission['statement']) > 200:
+        raise ValueError('mission statement must fit on the cover; keep it under 200 characters.')
+    if len(mission['progress']) > 200:
+        raise ValueError('mission progress is one sentence; keep it under 200 characters.')
+    if mission.get('clarity') not in CLARITY:
+        raise ValueError(f'mission clarity must be one of {CLARITY}.')
+    if mission['clarity'] == 'confirmed' and not mission.get('source'):
+        raise ValueError('A confirmed mission needs source: where the director said or approved it.')
+    roadmap = mission.get('roadmap')
+    if not isinstance(roadmap, list) or not 2 <= len(roadmap) <= 6:
+        raise ValueError('mission roadmap needs 2 to 6 milestones.')
+    for step in roadmap:
+        if not isinstance(step, dict):
+            raise ValueError('mission roadmap milestones must be objects.')
+        known(step, 'milestone', 'Roadmap milestone')
+        text(step, 'label', 'Roadmap milestone')
+        text(step, 'when', 'Roadmap milestone', required=False)
+        if step.get('state') not in ROADMAP_STATES:
+            raise ValueError(f'Roadmap milestone state must be one of {ROADMAP_STATES}.')
+    return mission
+
+
 def plain_language(data):
     """Warn about insider shorthand on anything the director reads. Evidence and captions are exempt."""
     found = []
-    fields = [('Cover', data.get('headline', '')), ('Cover', data.get('what_it_is', '')), ('Cover', data.get('usage', {}).get('goal', ''))]
+    mission = data.get('mission', {})
+    fields = [('Cover', data.get('headline', '')), ('Cover', data.get('what_it_is', '')), ('Cover', data.get('usage', {}).get('goal', '')),
+              ('Cover', mission.get('statement', '')), ('Cover', mission.get('progress', ''))]
+    fields += [('Cover', m['label']) for m in mission.get('roadmap', [])]
     for number, slide in enumerate(data['slides'], 1):
         label = f'Slide {number}'
-        for field in ('title', 'lede', 'body', 'why', 'say', 'question', 'context', 'recommendation', 'default', 'data_from'):
+        for field in ('title', 'lede', 'body', 'why', 'say', 'question', 'context', 'recommendation', 'default', 'data_from', 'cost'):
             fields.append((label, slide.get(field, '')))
+        fields += [(label, a['question'] + ' ' + a['learn']) for a in slide.get('asks', [])]
         fields += [(label, p['text']) for p in slide.get('points', [])]
         fields += [(label, o['label'] + ' ' + o['consequence']) for o in slide.get('options', [])]
         fields += [(label, s) for s in slide.get('suggestions', [])]
@@ -448,6 +511,36 @@ def validate_question(slide, label, ids, base):
         raise ValueError(f'{label} suggestions must be at most four short answers (60 characters each).')
     if slide.get('visual') is not None:
         validate_visual(slide['visual'], label, base)
+    check_links(slide.get('evidence', []), label)
+
+
+def validate_mock(slide, label, ids, base):
+    """A feature or design change we have not built, shown as a picture so the director can react before anyone builds it."""
+    claim_id(slide, label, ids)
+    for field in ('title', 'lede', 'cost', 'default'):
+        text(slide, field, label)
+    text(slide, 'why', label, required=False)
+    visual = slide.get('visual')
+    if not isinstance(visual, dict) or visual.get('type') not in MOCK_VISUALS:
+        raise ValueError(f'{label} mock needs a picture of the idea: a visual of type {MOCK_VISUALS}.')
+    validate_visual(visual, label, base)
+    check_links(slide.get('evidence', []), label)
+
+
+def validate_research(slide, label, ids, base=None):
+    """The questions for users whose answers would most change the plan. The director ticks the ones to send."""
+    claim_id(slide, label, ids)
+    for field in ('title', 'lede', 'default'):
+        text(slide, field, label)
+    asks = slide.get('asks')
+    if not isinstance(asks, list) or not 2 <= len(asks) <= 4:
+        raise ValueError(f'{label} research needs 2 to 4 asks.')
+    for ask in asks:
+        if not isinstance(ask, dict):
+            raise ValueError(f'{label} asks must be objects.')
+        known(ask, 'ask', f'{label} ask')
+        for field in ('who', 'question', 'learn', 'how'):
+            text(ask, field, f'{label} ask')
     check_links(slide.get('evidence', []), label)
 
 
@@ -597,6 +690,36 @@ def render_question(slide, number, index):
 <dl class="terms"><div><dt>If you don't answer</dt><dd>{esc(slide['default'])}</dd></div>{needed}</dl>{'</div></div>' if figure else ''}{sources}{say(slide)}</section>'''
 
 
+def render_mock(slide, number, index):
+    figure = render_visual(slide['visual']).replace('class="figure', 'class="mocked figure', 1)
+    chips = '<div class="chips" role="group" aria-label="Your reaction">' + ''.join(f'<button type="button" class="chip" data-question="{esc(slide['id'])}" data-option="{i}" aria-pressed="false">{esc(x)}</button>' for i, x in enumerate(REACTIONS)) + '</div>'
+    why = f'<p class="why"><b>Why this one</b>{esc(slide["why"])}</p>' if slide.get('why') else ''
+    evidence = slide.get('evidence', [])
+    sources = '<p class="evidence">Sources: ' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</p>' if evidence else ''
+    return f'''<section class="slide mock" data-kind="mock" data-id="{esc(slide['id'])}" data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
+<div class="eyebrow">Mock {index} · Not built yet, your reaction</div><h2>{esc(slide['title'])}</h2><p class="lede">{esc(slide['lede'])}</p>
+<div class="ask-split">{figure}<div>{why}{chips}
+<label class="note-field answer">What would you change? <textarea data-note="{esc(slide['id'])}" rows="2" placeholder="Optional. What's missing, what's wrong, who it's for."></textarea></label>
+<dl class="terms"><div><dt>Rough cost</dt><dd>{esc(slide['cost'])}</dd></div><div><dt>If you don't react</dt><dd>{esc(slide['default'])}</dd></div></dl></div></div>{sources}{say(slide)}</section>'''
+
+
+def render_research(slide, number):
+    items = ''.join(f'''<button type="button" class="ask-item" data-research="{esc(slide['id'])}" data-option="{i}" aria-pressed="false"><span class="who">{esc(a['who'])}</span><strong>{esc(a['question'])}</strong><span><b>What it would change</b> {esc(a['learn'])}</span><span><b>How we'd ask</b> {esc(a['how'])}</span></button>''' for i, a in enumerate(slide['asks']))
+    evidence = slide.get('evidence', [])
+    sources = '<p class="evidence">Sources: ' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</p>' if evidence else ''
+    return f'''<section class="slide research" data-kind="research" data-id="{esc(slide['id'])}" data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
+<div class="eyebrow">Questions worth asking · Tick the ones to send</div><h2>{esc(slide['title'])}</h2><p class="lede">{esc(slide['lede'])}</p>
+<div class="asks" style="--count:{len(slide['asks'])}">{items}</div>
+<label class="note-field">Your note <textarea data-note="{esc(slide['id'])}" rows="1" placeholder="Optional. A better question, or someone else to ask."></textarea></label>
+<dl class="terms"><div><dt>If you don't pick</dt><dd>{esc(slide['default'])}</dd></div></dl>{sources}{say(slide)}</section>'''
+
+
+def render_mission(mission):
+    steps = ''.join(f'<li class="road-{m["state"]}"><i>{esc(m["state"])}</i><span>{esc(m["label"])}</span>' + (f'<em>{esc(m["when"])}</em>' if m.get('when') else '') + '</li>' for m in mission['roadmap'])
+    return (f'<div class="mission mission-{mission["clarity"]}"><p class="mission-statement"><b>Mission</b>{esc(mission["statement"])}<i>{CLARITY_LABELS[mission["clarity"]]}</i></p>'
+            f'<ol class="roadmap" aria-label="Roadmap">{steps}</ol><p class="mission-progress"><b>Progress</b>{esc(mission["progress"])}</p></div>')
+
+
 def render_usage(usage):
     status = usage['status']
     goal = f'<span>Goal: {esc(usage["goal"])}</span>' if usage.get('goal') else '<span>No agreed goal yet</span>' if status == 'no-goal' else ''
@@ -612,17 +735,23 @@ def render_slides(data):
     questions = [s for s in data['slides'] if s['kind'] == 'question']
     metrics = ''.join(f'<div class="metric"><b>{esc(m["value"])}</b><span>{esc(m["label"])}</span></div>' for m in data.get('metrics', []))
     gaps = f'<p class="gaps">Not checked: {esc("; ".join(data["gaps"]))}</p>' if data.get('gaps') else ''
+    mocks = [s for s in data['slides'] if s['kind'] == 'mock']
+    research = [s for s in data['slides'] if s['kind'] == 'research']
     made = sum(s['timing'] == 'made' for s in decisions)
-    asks = [f'{len(decisions)} call{"s" if len(decisions) != 1 else ""}'] if decisions else []
-    asks += [f'{len(questions)} question{"s" if len(questions) != 1 else ""}'] if questions else []
-    count = ' and '.join(asks) + ' for you' + (f', {made} of them about reversing something already in place' if made else '')
+    plural = lambda n, word: f'{n} {word}{"s" if n != 1 else ""}'
+    asks = [plural(len(decisions), 'call')] if decisions else []
+    asks += [plural(len(questions), 'question')] if questions else []
+    asks += [plural(len(mocks), 'mock') + ' to react to'] if mocks else []
+    asks += ['questions for users to pick from'] if research else []
+    count = (', '.join(asks[:-1]) + ' and ' + asks[-1] if len(asks) > 1 else asks[0]) + ' for you' + (f'. {made} of the calls {"is" if made == 1 else "are"} about reversing something already in place' if made else '')
     what = f'<p class="what">{esc(data["what_it_is"])}</p>' if data.get('what_it_is') else ''
     hero = render_visual(data['hero']).replace('class="figure', 'class="hero figure', 1) if data.get('hero') else ''
     usage = render_usage(data['usage']) if data.get('usage') else ''
+    mission = render_mission(data['mission']) if data.get('mission') else ''
     parts = [f'''<section class="slide cover{' has-hero' if hero else ''}" data-kind="cover" data-seconds="{SECONDS['cover']}" aria-label="Slide 1">
-<div class="eyebrow">Check-in · {esc(data['project'])} · {esc(data['window'])}</div>{what}<h1>{esc(data['headline'])}</h1>{hero}
+<div class="eyebrow">Check-in · {esc(data['project'])} · {esc(data['window'])}</div>{what}{mission}<h1>{esc(data['headline'])}</h1>{hero}
 <div class="metrics">{metrics}</div>{usage}<p class="count">{count}. About {round(data['seconds'] / 60)} minutes. Arrow keys or swipe to move; pick an option on any call slide.</p>{gaps}</section>''']
-    number, call, asked = 1, 0, 0
+    number, call, asked, mocked = 1, 0, 0, 0
     for slide in data['slides']:
         number += 1
         if slide['kind'] == 'decision':
@@ -631,6 +760,11 @@ def render_slides(data):
         elif slide['kind'] == 'question':
             asked += 1
             parts.append(render_question(slide, number, asked))
+        elif slide['kind'] == 'mock':
+            mocked += 1
+            parts.append(render_mock(slide, number, mocked))
+        elif slide['kind'] == 'research':
+            parts.append(render_research(slide, number))
         else:
             parts.append(render_info(slide, number))
     nexts = ''.join(f'<li>{esc(x)}</li>' for x in data['next'])
@@ -668,7 +802,11 @@ Delete the ones you don't need, duplicate the ones you do, and change only the w
 
 - Escape <, > and & in your text. Put pictures in as data: URIs or https links.
 - Decision slides: data-id must be unique, data-recommended and data-current are option positions from 0,
-  data-default is what you do with no answer. Question slides need data-id and data-default.
+  data-default is what you do with no answer. Question, mock and research slides need data-id and data-default.
+- Cover mission: keep it on every deck. Use the mission-confirmed, mission-inferred or mission-unclear class with
+  its label, and give each roadmap step a road-done, road-now, road-next or road-later class. When the mission is
+  not confirmed, the first call is a question slide with data-id mission.
+- Mock slides keep the three reaction chips (Build it, Change it, Not now) as they are.
 - Bars: each fill width is the value divided by the largest value, as a percent.
 - Goal tracker: the fill width is (current - baseline) / (target - baseline) as a percent, and the dashed
   marker's left is the same for the projected value. Keep the status class and its label in step.
@@ -676,7 +814,7 @@ Delete the ones you don't need, duplicate the ones you do, and change only the w
 - Line charts: edit only the JSON in data-chart (question, unit, x labels, series with one value per label).
 - Set the deck name and date in the meta script near the bottom, and the project name in <title> and the header.
 - Keep the rules in references/deck-data.md: a call within the first three slides, no more than two
-  information slides in a row, about five minutes in total.
+  information slides in a row, at most two mocks, about six minutes in total.
 -->'''
 
 
@@ -685,7 +823,7 @@ def starter():
     sample = Path(__file__).resolve().parent.parent / 'assets' / 'sample' / 'deck.json'
     data, _ = validate(json.loads(sample.read_text(encoding='utf-8')), sample.parent)
     data.update(deck_id='starter', created_at='2026-01-01T00:00:00')
-    names = ['cover slide (headline, metrics, what it is)']
+    names = ['cover slide (what it is, mission and roadmap, headline, metrics)']
     for slide in data['slides']:
         visual = slide.get('visual', {}).get('type')
         names.append(f'{slide["kind"]} slide' + (f' with a {visual} visual' if visual else '') + (f' ({slide["timing"]})' if slide['kind'] == 'decision' else ''))
@@ -696,6 +834,7 @@ def starter():
     extras = [
         dict(type='gallery', images=[dict(src='search-before.svg', alt='Old results', label='Before'), dict(src='search-after.svg', alt='New results', label='After')], caption='Two or three images side by side.'),
         dict(type='image', src='search-after.svg', alt='The new results page', caption='One screenshot or diagram.'),
+        dict(type='bars', question='Searches per day still hitting the old system', bars=[dict(label='Warehouse scanner', value=1200, highlight=True), dict(label='Returns desk', value=300, highlight=True), dict(label='Staff search page', value=0)]),
         dict(type='flow', steps=[dict(label='Typed query', detail='Staff search page'), dict(label='Ranking', detail='Best match first', state='done'), dict(label='Filters', detail='Size and color', state='moving')]),
         dict(type='compare', before=dict(label='Before', text='Newest products first.'), after=dict(label='After', text='Best match first, typos forgiven.')),
         dict(type='code', text='$ search "blu ceramc mug"\n1. Blue ceramic mug, 12 oz'),

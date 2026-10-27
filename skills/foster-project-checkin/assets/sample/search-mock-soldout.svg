@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480" viewBox="0 0 800 480" font-family="Helvetica,Arial,sans-serif">
+<rect width="800" height="480" fill="#f4f5f7"/>
+<rect width="800" height="44" fill="#1f2933"/><circle cx="22" cy="22" r="6" fill="#ef6b5b"/><circle cx="42" cy="22" r="6" fill="#f2c14e"/><circle cx="62" cy="22" r="6" fill="#5fb878"/>
+<text x="96" y="27" fill="#cbd2d9" font-size="14">Catalog · Staff tools</text>
+<rect x="32" y="64" width="736" height="44" rx="8" fill="#fff" stroke="#cfd6dd"/><text x="52" y="92" fill="#1f2933" font-size="17">blue ceramic mug</text>
+<rect x="32" y="124" width="736" height="72" rx="8" fill="#fff" stroke="#cfd6dd"/>
+<rect x="46" y="138" width="44" height="44" rx="6" fill="#d9dde2"/>
+<text x="104" y="156" fill="#7b8794" font-size="16" font-weight="700">Blue ceramic mug, 12 oz</text>
+<rect x="104" y="166" width="78" height="20" rx="4" fill="#fbe3dc"/><text x="112" y="180" fill="#b4462e" font-size="12" font-weight="700">Sold out</text>
+<text x="194" y="180" fill="#7b8794" font-size="12">Back Nov 12 · 3 stores have it</text>
+<text x="32" y="228" fill="#1f2933" font-size="14" font-weight="700">In stock here instead</text>
+<rect x="32" y="240" width="358" height="104" rx="8" fill="#e6f4ec" stroke="#2f7d5b" stroke-width="2"/>
+<rect x="46" y="254" width="44" height="44" rx="6" fill="#7aa7d9"/>
+<text x="104" y="272" fill="#1f2933" font-size="15" font-weight="700">Blue ceramic mug, 16 oz</text>
+<text x="104" y="292" fill="#2f7d5b" font-size="12">In stock · aisle 7</text>
+<text x="46" y="326" fill="#52606d" font-size="12">Same glaze, bigger size</text>
+<rect x="410" y="240" width="358" height="104" rx="8" fill="#fff" stroke="#cfd6dd"/>
+<rect x="424" y="254" width="44" height="44" rx="6" fill="#7aa7d9"/>
+<text x="482" y="272" fill="#1f2933" font-size="15" font-weight="700">Ceramic mug set, blue</text>
+<text x="482" y="292" fill="#2f7d5b" font-size="12">In stock · aisle 7</text>
+<text x="424" y="326" fill="#52606d" font-size="12">Set of four, same color</text>
+<text x="32" y="384" fill="#52606d" font-size="13">More results</text>
+<rect x="32" y="396" width="736" height="56" rx="8" fill="#fff" stroke="#e1e5ea"/>
+<rect x="46" y="406" width="36" height="36" rx="6" fill="#7aa7d9"/>
+<text x="96" y="421" fill="#1f2933" font-size="16">Blue enamel camping cup</text>
+<text x="96" y="440" fill="#7b8794" font-size="12">Similar · in stock</text>
+</svg>
