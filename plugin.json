@@ -9,11 +9,13 @@
   },
   "homepage": "https://github.com/gregorymfoster/foster-skills",
   "repository": "https://github.com/gregorymfoster/foster-skills",
+  "license": "MIT",
   "keywords": [
     "skills",
     "writing",
     "research",
     "project-management",
-    "testing"
+    "testing",
+    "foster-skills"
   ]
 }

@@ -82,3 +82,7 @@ There is no CI. Run every test locally before pushing:
 ```
 
 The test in `scripts/` fails if the generated marketplace files have drifted from `plugin.json`.
+
+## License
+
+MIT. See `LICENSE`.
