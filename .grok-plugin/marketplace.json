@@ -8,7 +8,7 @@
     {
       "name": "foster-skills",
       "description": "Personal agent skills: research posts, structure-first draft reviews, five-minute project check-ins, fuzz testing apps through their real UI, and assessing startup ideas.",
-      "version": "2.5.0",
+      "version": "2.6.0",
       "author": {
         "name": "Greg Foster"
       },

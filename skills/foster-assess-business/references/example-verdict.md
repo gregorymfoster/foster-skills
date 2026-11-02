@@ -1,29 +1,38 @@
 # Worked example: a dispatch board for small trades shops
 
-This is a hypothetical verdict, written to show the expected shape: a short summary, a verdict table, a Pros paragraph, a Cons paragraph, and the evidence score with the next test. It's deliberately an idea that fails some filters, because most real ideas do. Company figures are from memory and not re-checked; a real run would fetch and link them. The founding team assumed here is Alex and Sam from the example in `founders.md`: a developer-tools founder and an operations-and-sales founder who has run a remote services team.
+A hypothetical verdict showing the shape of the verdict part of a report. The idea fails several lenses on purpose, because most real ideas do. Company figures are from memory and not re-checked; a real run fetches and links them. The founders are Alex and Sam from the example in `founders.md`. The principles are the two examples in `principles.md`.
 
 ---
 
 ## Trades dispatch board: verdict
 
-A free, open-source dispatch board for plumbing, HVAC and electrical shops with one to ten trucks: jobs, technicians, a map and text-message updates to customers, with a paid tier for invoicing, payments and a booking page. It's easy to give away and the why-now is real, but it fails the crowded-but-mediocre test and fits neither founder's strengths well. With no customer evidence, there's little reason to test it ahead of better-shaped ideas.
+A free, open-source dispatch board for plumbing, HVAC and electrical shops with one to ten trucks: jobs, technicians, a map and text updates to customers, with a paid tier for invoicing, payments and a booking page. It's easy to try and the why-now is real, but it fails on crowding and founder fit, and the user's own deadline principle. With no customer evidence, there's little reason to test it ahead of better-shaped ideas.
 
 | Framework | Verdict | Why |
 |---|---|---|
-| Free-first | Partial pass | Owners can adopt without a purchase decision and it costs little to serve. But the paid layer is bought by the same owner who got it free, and Jobber and Housecall Pro already offer free trials that beat a bare dispatch board. |
-| Internal-tool test | Pass | Large home-services groups run in-house dispatch and routing tools built on top of their field-service platforms. |
-| Crowded but mediocre | Fail | Polished, well-funded leaders already serve every size: ServiceTitan (public since late 2024) at the top, Jobber and Housecall Pro for small shops. |
-| Big-money market | Likely pass | US home services is a very large market and shops already pay monthly for software. Small shops are price-sensitive and churn often. |
-| Founder fit: Alex | Fail | Product craft carries over, but none of Alex's developer-tools and platform expertise does, and there's no edge over teams who've sold to trades for a decade. |
-| Founder fit: Sam | Partial pass | Could run remote support and onboarding, but trades owners buy through local trust and phone sales, unlike the mid-size firms Sam has sold to. |
-| Why now | Partial pass | Cheap AI makes call transcription and auto-scheduling practical for tiny shops. The leaders are shipping the same features, so the window is narrow. |
-| Constraints | Pass | Nowhere near Alex's non-compete, and no hardware involved. |
-| Assumption mapping | Riskiest assumptions untested | Value: will owners switch from paper or a leader's free trial to an open-source tool? (low). Go-to-market: can two founders without trades networks reach shops cheaply? (low). Viability: will owners pay for payments and invoicing from a newcomer? (low). |
-| Lean startup | 3 out of 10 today | The riskiest assumption is named, but there's no MVP plan, metric or pivot rule yet. Concierge MVP: run dispatch by hand over text for 5 shops for two weeks. Persevere if 3 of 5 ask to keep it and at least one agrees to pay. |
-| Mom Test | Ready to run | Ask: walk me through yesterday's jobs, start to finish. When did a job last go wrong because of scheduling, and what did it cost? What do you use now, and what did you try before it? Commitment to ask for: two weeks of their dispatch run through the concierge MVP. |
+| Problem and urgency | Partial pass | Missed and double-booked jobs cost real money, but most small shops get by with a whiteboard and a group text, and nothing forces them to change. |
+| Market size | Likely pass | Roughly 100,000 US shops under ten trucks at about $1,200 a year is about $120M; 1% is $1.2M a year. Fine for a side business, small for venture unless it widens. |
+| Crowded but mediocre | Fail | Polished, well-funded leaders serve every size: ServiceTitan (public since late 2024) at the top, Jobber and Housecall Pro for small shops. |
+| Internal-tool test | Pass | Large home-services groups run in-house dispatch and routing tools on top of their field-service platforms. |
+| Why now | Partial pass | Cheap AI makes call transcription and auto-scheduling practical for tiny shops, but the leaders are shipping the same features. |
+| Adoption | Partial pass | Owners can install it alone in an afternoon, but techs must use it on their phones from day one, and it doesn't spread beyond the shop. |
+| Free-first | Partial pass | Easy to give away and cheap to serve. The paid layer is bought by the same owner who got it free, and the leaders' free trials beat a bare board. |
+| Business model | Partial pass | Payments revenue is the obvious upside, and exactly where the leaders make their money and will defend hardest. |
+| Moat | Fail | Nothing a funded leader couldn't match in a quarter. |
+| Founder fit: Alex | Fail | Product craft carries over; none of Alex's developer-tools and platform expertise does. |
+| Founder fit: Sam | Partial pass | Could run remote onboarding and support, but trades owners buy on local trust, unlike the mid-size firms Sam has sold to. |
+| Constraints | Pass | Nowhere near Alex's non-compete; no hardware. |
+| Sell to someone with a deadline (principle) | Fail | No dated consequence for a shop that keeps using the whiteboard. |
+| Assumption map | Riskiest assumptions untested | Value: will owners switch from a whiteboard or a leader's trial? (low). Go-to-market: can founders without trades networks reach shops cheaply? (low). |
+| Lean startup | 3 out of 10 | Riskiest assumption named, but no metric or pivot rule yet. Concierge MVP: run dispatch by text for 5 shops for two weeks. Persevere if 3 of 5 ask to keep it and one agrees to pay. |
+| Mom Test | Ready to run | Walk me through yesterday's jobs. When did a job last go wrong because of scheduling, and what did it cost? What did you try before your current setup? Ask: two weeks of their dispatch through the concierge MVP. |
 
-**Pros.** It's simple to explain and simple to try. Shops already pay monthly for software, so the market is real. AI call transcription and scheduling are newly cheap, and a free, open-source board could spread through trade forums and supplier counters. Sam's remote support model could make hands-on onboarding affordable.
+**Pros.** It's simple to explain and to try. Shops already pay monthly for software, so the market is real if modest. AI call handling is newly cheap, and a free board could spread through trade forums and supply-house counters. Sam's remote support model could make hands-on onboarding affordable.
 
-**Cons.** The field has polished, funded leaders at every size, so the free version doesn't clearly beat what's already free to try. The paid layer is sold to the same owner who got it free, which weakens the free-first loop. Neither founder has a network or an edge with trades owners, who buy on local trust. And payments and invoicing, the obvious paid tier, are exactly where the leaders make their money and will defend hardest.
+**Cons.** The red flag fires: the techs who would love it can't buy it, and owners feel no deadline. Polished, funded leaders sit at every size, so the free version doesn't clearly beat what's already free to try. The paid layer goes to the same owner who got it free. Neither founder has a network or an edge with trades owners. And payments, the obvious paid tier, is the leaders' core business.
 
-Evidence: 3/10 (highest rung: level 1, the founders' own reasoning). Next test: ten Mom Test conversations with shop owners found through supply houses, and a concierge offer at the end; drop the idea unless at least three accept within two weeks.
+| Crowding | Buyer urgency | Founder fit | Time to first dollar | Scale | Platform risk | Biggest unknown |
+|---|---|---|---|---|---|---|
+| High | Low | Low | 2 to 3 months | Small; pays for itself at best | Medium (leaders bundle AI scheduling) | Will owners switch from free habits at all? |
+
+Evidence: 3/10 (highest rung: level 1, the founders' own reasoning). Next test: ten Mom Test conversations with owners met through supply houses, ending with the concierge offer. Drop the idea unless three accept within two weeks.
