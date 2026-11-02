@@ -49,4 +49,4 @@ Done when every lens has a verdict, every number has a source or a flag, and the
 
 ## 6. Deliver and learn
 
-Put the report where the user reads documents (a doc, a page, or a Markdown file) and link it. Save idea, verdict, evidence score and next test to memory if there is any. If the assessment turned up a lesson that would apply to other ideas, or the user corrects a verdict, offer to add it to their `principles.md`, worded in its format.
+Put the report where the user reads documents (a doc, a page, or a Markdown file) and link it. Save idea, verdict, evidence score and next test to memory if there is any. If the assessment turned up a lesson that would apply to other ideas, or the user corrects a verdict, offer to add it to their `principles.md`, worded in its format. To find new ideas rather than judge given ones, use `foster-ideate-business`.

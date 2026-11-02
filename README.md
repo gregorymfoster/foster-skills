@@ -25,6 +25,13 @@ Personal agent skills, one directory per skill under `skills/`. The repository i
   pros and cons, a scorecard, an evidence score out of 10, and a test plan.
   Reads private `founders.md` and `principles.md` files, so you can feed it
   your team and your own lessons over time.
+- `foster-ideate-business`: generates new business ideas that fit a specific
+  team. Mines the founders' edges, runs idea lenses (internal tools nobody has
+  made generic, crowded fields of mediocre tools, free-first products, regional
+  versions, why-now shifts, services that should be software), screens the raw
+  list with named kill reasons, and hands the best ideas to
+  `foster-assess-business`. Reads the same private `founders.md` and
+  `principles.md`.
 
 ## Install
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ideate Business"
+  short_description: "Generate and screen startup ideas that fit your team"
+  default_prompt: "Use $foster-ideate-business to generate new business ideas that fit our founders, screen them, and hand the best ones to $foster-assess-business."
