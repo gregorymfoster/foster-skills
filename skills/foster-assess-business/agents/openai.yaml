@@ -1,0 +1,4 @@
+interface:
+  display_name: "Assess Business"
+  short_description: "Validation battery for a business idea, with an evidence score"
+  default_prompt: "Use $foster-assess-business to run the validation battery on this business idea: the shape filters and the testing frameworks. Give me the verdict table, pros and cons, the evidence score, and the cheapest next test."

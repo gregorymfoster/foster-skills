@@ -18,6 +18,13 @@ Personal agent skills, one directory per skill under `skills/`. The repository i
 - `foster-fuzz`: drives an app's real UI like a crowd of realistic users,
   through every flow and state it can reach, and reports the bugs and UI/UX
   problems it finds with screenshots and repro steps.
+- `foster-assess-business`: runs a battery of validation assessments on a
+  business idea: shape filters (free-first, the internal-tool test,
+  crowded-but-mediocre, big-money market, founder fit, why-now) and the
+  testing frameworks (assumption mapping, lean experiments, customer
+  research, lean startup, Mom Test). Returns pass or fail per filter, pros
+  and cons, and an evidence score out of 10. Founder profiles and the filter
+  set are configurable.
 
 ## Install
 
