@@ -10,4 +10,6 @@ python3 -m unittest discover -s skills/foster-project-checkin/scripts -p 'test_*
 
 The canonical directory is `/Users/gregfoster/code/skills/skills/foster-project-checkin`. Installed locations should be symlinks to it. Check-in archives belong outside this repository.
 
+Bump `VERSION` in `scripts/render_deck.py` together with the root `plugin.json`; a test fails when they differ. `scripts/check_fit.js` and `scripts/capture.js` need Node with Playwright, and the fit test skips without it, so say in the commit when it did not run.
+
 After changing the renderer, `assets/components/`, or the sample deck, regenerate the hand-building starter with `python3 skills/foster-project-checkin/scripts/render_deck.py --starter` and commit it. A test fails when it is stale.

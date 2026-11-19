@@ -2,6 +2,7 @@
   "project": "Catalog search (sample)",
   "project_id": "sample-catalog-search",
   "window": "Since Oct 17 (last check-in)",
+  "length": "full",
   "what_it_is": "A search box that lets store staff find any product in the catalog.",
   "headline": "Staff find the right product on the first try. Customers still see the old page.",
   "metrics": [

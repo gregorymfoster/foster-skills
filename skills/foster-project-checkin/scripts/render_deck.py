@@ -6,13 +6,14 @@ import html
 import json
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import uuid
 from datetime import datetime
 from pathlib import Path
 
-VERSION = '2.8.0'
+VERSION = '2.9.0'
 KINDS = ('status', 'visual', 'usage', 'decision', 'question', 'mock', 'research')
 INFO_KINDS = ('status', 'visual', 'usage')
 # Slides that ask the director for something. Each one counts as weighing in, so it breaks a run of information slides.
@@ -24,25 +25,25 @@ STATES = ('done', 'moving', 'blocked', 'dropped', 'risk')
 USAGE_STATES = ('up', 'down', 'flat', 'surprise', 'data-gap', 'blocked')
 # Where the project stands against its goal. The first four need data and a goal; the last two are the honest fallbacks.
 GOAL_STATUS = ('on-track', 'at-risk', 'off-track', 'too-early')
-USAGE_STATUS = GOAL_STATUS + ('no-goal', 'no-data')
+USAGE_STATUS = GOAL_STATUS + ('no-goal', 'no-data', 'unreachable')
+NO_USAGE = ('no-data', 'unreachable')
 # Where a roadmap step stands, and how sure we are that the mission is the one the director wants.
 ROADMAP_STATES = ('done', 'now', 'next', 'later')
 CLARITY = ('confirmed', 'inferred', 'unclear')
 CLARITY_LABELS = {'confirmed': 'Confirmed by you', 'inferred': 'My reading. Confirm?', 'unclear': 'Unclear. I need you'}
 # A mock gets one of three fixed reactions, so every deck asks for feedback the same way.
 REACTIONS = ('Build it', 'Change it', 'Not now')
-STATUS_LABELS = {'on-track': 'On track', 'at-risk': 'At risk', 'off-track': 'Off track', 'too-early': 'Too early to tell', 'no-goal': 'No goal set', 'no-data': 'No usage data'}
+STATUS_LABELS = {'on-track': 'On track', 'at-risk': 'At risk', 'off-track': 'Off track', 'too-early': 'Too early to tell', 'no-goal': 'No goal set', 'no-data': 'No usage data', 'unreachable': 'Usage not read'}
 VISUALS = ('image', 'gallery', 'slider', 'bars', 'line', 'stats', 'goal', 'flow', 'compare', 'code')
 TONES = ('good', 'bad', 'neutral')
-SECONDS = {'cover': 25, 'status': 35, 'visual': 35, 'usage': 40, 'decision': 50, 'question': 40, 'mock': 45, 'research': 45, 'close': 25}
+SECONDS = {'cover': 20, 'status': 25, 'visual': 25, 'usage': 30, 'decision': 40, 'question': 30, 'mock': 35, 'research': 40, 'close': 20}
 MAX_DECISIONS = 5
 MAX_QUESTIONS = 3
 MAX_MOCKS = 2
-MAX_SLIDES = 12
+# A check-in is short unless the director asks for the full one: six slides in about three minutes, or twelve in about six.
+LENGTHS = {'short': dict(slides=6, soft=None, hard=250), 'full': dict(slides=12, soft=330, hard=420)}
 MAX_POINTS = 3
 MAX_ASKS = 3
-SOFT_LIMIT = 390
-HARD_LIMIT = 480
 MOCK_VISUALS = ('image', 'gallery', 'slider')
 MAX_INFO_RUN = 2
 # Reader-facing words allowed per field, by shape. A director reads a slide in about twenty seconds, so every
@@ -79,7 +80,7 @@ SLUG = r'[a-z0-9]+(?:-[a-z0-9]+)*'
 # and a misspelled field fails loudly instead of silently vanishing from the deck.
 INFO_FIELDS = {'kind', 'title', 'lede', 'why', 'say', 'evidence', 'seconds', 'visual'}
 FIELDS = {
-    'deck': {'project', 'project_id', 'window', 'what_it_is', 'mission', 'headline', 'hero', 'metrics', 'usage', 'gaps', 'slides', 'next',
+    'deck': {'project', 'project_id', 'window', 'length', 'what_it_is', 'mission', 'headline', 'hero', 'metrics', 'usage', 'gaps', 'slides', 'next',
              'schema_version', 'deck_id', 'created_at', 'skill_version', 'seconds'},
     'usage_summary': {'status', 'goal', 'sources', 'searched'},
     'mission': {'statement', 'roadmap', 'clarity', 'source'},
@@ -350,8 +351,12 @@ def validate(data, base=Path('.')):
     mission = validate_mission(data.get('mission'))
     usage = validate_usage(data.get('usage'))
     slides = data.get('slides')
-    if not isinstance(slides, list) or not 3 <= len(slides) <= MAX_SLIDES:
-        raise ValueError(f'slides must be a list of 3 to {MAX_SLIDES} content slides.')
+    length = data.setdefault('length', 'short')
+    if length not in LENGTHS:
+        raise ValueError(f'length must be one of {tuple(LENGTHS)}.')
+    limit = LENGTHS[length]
+    if not isinstance(slides, list) or not 3 <= len(slides) <= limit['slides']:
+        raise ValueError(f'slides must be a list of 3 to {limit["slides"]} content slides for a {length} check-in.' + (' Keep the slides that carry a call or the news, or set length to full when the director asked for the long version.' if length == 'short' else ''))
     ids, warnings, run, first_call = set(), [], 0, None
     total = SECONDS['cover'] + SECONDS['close']
     for number, slide in enumerate(slides, 1):
@@ -419,29 +424,31 @@ def validate(data, base=Path('.')):
         if calls[0]['kind'] != 'question' or calls[0]['id'] != 'mission':
             raise ValueError('The mission is not confirmed, so make the first call a question slide with id mission asking the director to confirm or correct it.')
     usage_slides = sum(s['kind'] == 'usage' for s in slides)
-    if usage['status'] == 'no-data' and usage_slides:
+    if usage['status'] in NO_USAGE and usage_slides:
         raise ValueError('A usage slide needs usage data. With status no-data, say so on the cover and propose how to start measuring.')
-    if usage['status'] != 'no-data' and not usage_slides:
+    if usage['status'] not in NO_USAGE and not usage_slides:
         raise ValueError('Usage data was found, so give it a usage slide: adoption, what stands out, data problems, and progress toward the goal.')
     if not usage.get('goal') and not questions:
         raise ValueError('There is no goal yet, so ask for one: add a question slide asking which number would tell you this is working.')
     goals = [s for s in slides if (s.get('visual') or {}).get('type') == 'goal']
     if usage['status'] in GOAL_STATUS and not goals:
         warnings.append('Usage is tracked against a goal but no slide shows it. Add a goal visual to the usage slide.')
-    if total > HARD_LIMIT:
-        raise ValueError(f'The deck runs about {total} seconds; cut it to fit five minutes.')
-    if total > SOFT_LIMIT:
-        warnings.append(f'The deck runs about {total} seconds, past the five-minute target.')
-    timings = {s['timing'] for s in slides if s['kind'] == 'decision'}
-    for timing in TIMINGS:
-        if timing not in timings:
-            warnings.append(f'No {timing} decision. Fine if the evidence has none; do not invent one.')
-    if not any(s['kind'] == 'visual' for s in slides):
-        warnings.append('No visual slide shows what the work looks like.')
-    if not any(s['kind'] == 'mock' for s in slides):
-        warnings.append('No mock. Show one feature or design change you would build next and ask for a reaction.')
-    if not any(s['kind'] == 'research' for s in slides):
-        warnings.append('No research slide. Add the questions for users whose answers would most change the plan.')
+    if total > limit['hard']:
+        raise ValueError(f'The deck runs about {total} seconds; a {length} check-in fits in {limit["hard"]}. Cut a slide.')
+    if limit['soft'] and total > limit['soft']:
+        warnings.append(f'The deck runs about {total} seconds, past the {limit["soft"] // 60}-minute target.')
+    # A short deck picks its slides; only the full one is nudged to cover every kind.
+    if length == 'full':
+        timings = {s['timing'] for s in slides if s['kind'] == 'decision'}
+        for timing in TIMINGS:
+            if timing not in timings:
+                warnings.append(f'No {timing} decision. Fine if the evidence has none; do not invent one.')
+        if not any(s['kind'] == 'visual' for s in slides):
+            warnings.append('No visual slide shows what the work looks like.')
+        if not any(s['kind'] == 'mock' for s in slides):
+            warnings.append('No mock. Show one feature or design change you would build next and ask for a reaction.')
+        if not any(s['kind'] == 'research' for s in slides):
+            warnings.append('No research slide. Add the questions for users whose answers would most change the plan.')
     without_why = [i for i, s in enumerate(slides, 1) if s['kind'] in INFO_KINDS and not s.get('why')]
     if without_why:
         warnings.append('Slides ' + ', '.join(map(str, without_why)) + ' do not say why it matters (add why).')
@@ -476,7 +483,9 @@ def validate_usage(usage):
     status = usage['status']
     if status == 'no-data' and (sources or not searched):
         raise ValueError('usage status no-data means no sources, and searched must list where you looked.')
-    if status != 'no-data' and not sources:
+    if status == 'unreachable' and (sources or not searched):
+        raise ValueError('usage status unreachable means the data exists but you could not read it: no sources, and searched must name each place and why it was out of reach.')
+    if status not in NO_USAGE and not sources:
         raise ValueError(f'usage status {status} needs sources: name each data source and how fresh it is.')
     if status in GOAL_STATUS and not usage.get('goal'):
         raise ValueError(f'usage status {status} needs the goal in words.')
@@ -619,6 +628,15 @@ def say(slide):
     return f'<p class="say"><span>Voiceover</span>{esc(slide["say"])}</p>' if slide.get('say') else ''
 
 
+def details(rows, slide):
+    """The small print of a call (the default, how reversible it is, the sources), folded away so the slide shows only the choice."""
+    evidence = slide.get('evidence', [])
+    if evidence:
+        rows = rows + [('Sources', None)]
+    body = ''.join(f'<div><dt>{esc(k)}</dt><dd>{esc(v) if v is not None else ", ".join(link(e["label"], e.get("url")) for e in evidence)}</dd></div>' for k, v in rows)
+    return f'<details class="more"><summary>Details</summary><dl class="terms">{body}</dl></details>'
+
+
 def link(label, url):
     return f'<a href="{esc(url)}" target="_blank" rel="noopener">{esc(label)}</a>' if url else esc(label)
 
@@ -704,15 +722,13 @@ def render_decision(slide, number, index):
         cards.append(f'''<button type="button" class="option" data-decision="{esc(slide['id'])}" data-option="{i}" aria-pressed="false"><span class="option-head"><b>{chr(65 + i)}</b>{tags}</span><strong>{esc(option['label'])}</strong><span>{esc(option['consequence'])}</span></button>''')
     current = f' data-current="{slide["current"]}"' if made else ''
     rev = {'cheap': 'Cheap to change later', 'costly': 'Gets costly to change', 'one-way': 'One-way door'}[slide['reversibility']]
-    rev_note = f' {esc(slide["reversibility_note"])}' if slide.get('reversibility_note') else ''
-    needed = f'<div><dt>Need it by</dt><dd>{esc(slide["needed_by"])}</dd></div>' if slide.get('needed_by') else ''
-    evidence = slide.get('evidence', [])
-    sources = '<p class="evidence">Sources: ' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</p>' if evidence else ''
+    facts = f'<span class="fact rev-{slide["reversibility"]}">{rev}</span>' + (f'<span class="fact">Need it by: {esc(slide["needed_by"])}</span>' if slide.get('needed_by') else '')
+    more = [("If you don't weigh in", slide['default'])] + ([(rev, slide['reversibility_note'])] if slide.get('reversibility_note') else [])
     return f'''<section class="slide decision {slide['timing']}" data-kind="decision" data-label="{esc(eyebrow)}" data-id="{esc(slide['id'])}" data-timing="{slide['timing']}" data-recommended="{slide['recommended']}"{current} data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
 <h2>{esc(slide['question'])}</h2><p class="lede">{esc(slide['context'])}</p>
 <div class="options" style="--count:{len(slide['options'])}">{''.join(cards)}</div>
-<dl class="terms"><div class="rec-why"><dt>Why I'd pick {chr(65 + slide['recommended'])}</dt><dd>{esc(slide['recommendation'])}</dd></div><div><dt>If you don't weigh in</dt><dd>{esc(slide['default'])}</dd></div><div><dt>{rev}</dt><dd class="rev-{slide['reversibility']}">{rev_note or '&nbsp;'}</dd></div>{needed}</dl>
-<label class="note-field">Your note <textarea data-note="{esc(slide['id'])}" rows="1" placeholder="Optional. Context, a constraint, or a different option."></textarea></label>{sources}{say(slide)}</section>'''
+<p class="pick-why"><b>Why I'd pick {chr(65 + slide['recommended'])}</b>{esc(slide['recommendation'])}</p><p class="facts">{facts}</p>
+<label class="note-field">Your note <textarea data-note="{esc(slide['id'])}" rows="1" placeholder="Optional. Context, a constraint, or a different option."></textarea></label>{details(more, slide)}{say(slide)}</section>'''
 
 
 def render_question(slide, number, index):
@@ -720,37 +736,33 @@ def render_question(slide, number, index):
     if slide.get('suggestions'):
         chips = '<div class="chips" role="group" aria-label="Quick answers">' + ''.join(f'<button type="button" class="chip" data-question="{esc(slide["id"])}" data-option="{i}" aria-pressed="false">{esc(x)}</button>' for i, x in enumerate(slide['suggestions'])) + '</div>'
     figure = render_visual(slide['visual']) if slide.get('visual') else ''
-    needed = f'<div><dt>Need it by</dt><dd>{esc(slide["needed_by"])}</dd></div>' if slide.get('needed_by') else ''
-    evidence = slide.get('evidence', [])
-    sources = '<p class="evidence">Sources: ' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</p>' if evidence else ''
+    facts = f'<p class="facts"><span class="fact">Need it by: {esc(slide["needed_by"])}</span></p>' if slide.get('needed_by') else ''
+    more = details([("If you don't answer", slide['default'])], slide)
     return f'''<section class="slide question" data-kind="question" data-label="Question {index} · Only you know this" data-id="{esc(slide['id'])}" data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
 <h2>{esc(slide['question'])}</h2><p class="lede">{esc(slide['context'])}</p>{f'<div class="ask-split">{figure}<div>' if figure else ''}{chips}
-<label class="note-field answer">Your answer <textarea data-note="{esc(slide['id'])}" rows="2" placeholder="A sentence is plenty."></textarea></label>
-<dl class="terms"><div><dt>If you don't answer</dt><dd>{esc(slide['default'])}</dd></div>{needed}</dl>{'</div></div>' if figure else ''}{sources}{say(slide)}</section>'''
+<label class="note-field answer">Your answer <textarea data-note="{esc(slide['id'])}" rows="2" placeholder="A sentence is plenty."></textarea></label>{facts}{'</div></div>' if figure else ''}{more}{say(slide)}</section>'''
 
 
 def render_mock(slide, number, index):
     figure = render_visual(slide['visual']).replace('class="figure', 'class="mocked figure', 1)
     chips = '<div class="chips" role="group" aria-label="Your reaction">' + ''.join(f'<button type="button" class="chip" data-question="{esc(slide['id'])}" data-option="{i}" aria-pressed="false">{esc(x)}</button>' for i, x in enumerate(REACTIONS)) + '</div>'
     why = f'<p class="why"><b>Why this one</b>{esc(slide["why"])}</p>' if slide.get('why') else ''
-    evidence = slide.get('evidence', [])
-    sources = '<p class="evidence">Sources: ' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</p>' if evidence else ''
+    more = details([("If you don't react", slide['default'])], slide)
     return f'''<section class="slide mock" data-kind="mock" data-label="Mock {index} · Not built yet, your reaction" data-id="{esc(slide['id'])}" data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
 <h2>{esc(slide['title'])}</h2><p class="lede">{esc(slide['lede'])}</p>
 <div class="ask-split">{figure}<div>{why}{chips}
 <label class="note-field answer">What would you change? <textarea data-note="{esc(slide['id'])}" rows="2" placeholder="Optional. What's missing, what's wrong, who it's for."></textarea></label>
-<dl class="terms"><div><dt>Rough cost</dt><dd>{esc(slide['cost'])}</dd></div><div><dt>If you don't react</dt><dd>{esc(slide['default'])}</dd></div></dl></div></div>{sources}{say(slide)}</section>'''
+<p class="facts"><span class="fact">Cost: {esc(slide['cost'])}</span></p></div></div>{more}{say(slide)}</section>'''
 
 
 def render_research(slide, number):
     items = ''.join(f'''<button type="button" class="ask-item" data-research="{esc(slide['id'])}" data-option="{i}" aria-pressed="false"><span class="who">{esc(a['who'])}</span><strong>{esc(a['question'])}</strong><span><b>What it would change</b> {esc(a['learn'])}</span><span><b>How we'd ask</b> {esc(a['how'])}</span></button>''' for i, a in enumerate(slide['asks']))
-    evidence = slide.get('evidence', [])
-    sources = '<p class="evidence">Sources: ' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</p>' if evidence else ''
+    more = details([("If you don't pick", slide['default'])], slide)
     return f'''<section class="slide research" data-kind="research" data-label="Questions for users · Tick the ones to send" data-id="{esc(slide['id'])}" data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
 <h2>{esc(slide['title'])}</h2><p class="lede">{esc(slide['lede'])}</p>
 <div class="asks" style="--count:{len(slide['asks'])}">{items}</div>
 <label class="note-field">Your note <textarea data-note="{esc(slide['id'])}" rows="1" placeholder="Optional. A better question, or someone else to ask."></textarea></label>
-<dl class="terms"><div><dt>If you don't pick</dt><dd>{esc(slide['default'])}</dd></div></dl>{sources}{say(slide)}</section>'''
+{more}{say(slide)}</section>'''
 
 
 def render_mission(mission):
@@ -764,6 +776,8 @@ def render_usage(usage):
     goal = f'<span>Goal: {esc(usage["goal"])}</span>' if usage.get('goal') else '<span>No agreed goal yet</span>' if status == 'no-goal' else ''
     if status == 'no-data':
         found = '<span class="src">Nothing measures this yet. Looked in: ' + esc('; '.join(usage['searched'])) + '</span>'
+    elif status == 'unreachable':
+        found = '<span class="src">The data exists, but I could not read it: ' + esc('; '.join(usage['searched'])) + '</span>'
     else:
         found = '<span class="src">Data: ' + ', '.join(link(s['name'], s.get('url')) + (f' (through {esc(s["as_of"])})' if s.get('as_of') else '') for s in usage['sources']) + '</span>'
     return f'<p class="usage-line usage-line-{status}"><i>{STATUS_LABELS[status]}</i>{goal}{found}</p>'
@@ -900,6 +914,24 @@ def latest(root, project_id):
     return max(decks)[1] if decks else None
 
 
+def fit_check(deck):
+    """Open the rendered deck in a headless browser and report slides that overflow. Returns (lines, note): the checker's
+    findings, or a note saying the check could not run, so a skipped check is never mistaken for a pass."""
+    checker = Path(__file__).with_name('check_fit.js')
+    if not shutil.which('node'):
+        return None, 'Fit not checked: Node is not installed. Look at every slide yourself; nothing may scroll.'
+    try:
+        if subprocess.run(['node', '-e', "require('playwright')"], capture_output=True, timeout=30).returncode != 0:
+            return None, 'Fit not checked: Playwright is not installed for Node. Look at every slide yourself; nothing may scroll.'
+        run = subprocess.run(['node', str(checker), str(deck)], capture_output=True, text=True, timeout=180)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return None, f'Fit not checked: the browser check did not finish ({type(error).__name__}).'
+    lines = [line for line in run.stdout.splitlines() if line.strip()]
+    if run.returncode not in (0, 1) or not lines:
+        return None, 'Fit not checked: the browser check failed to start. ' + run.stderr.strip()[:200]
+    return lines, None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--deck', type=Path, help='Deck JSON to validate and render.')
@@ -907,6 +939,7 @@ def main():
     parser.add_argument('--latest', metavar='PROJECT_ID', help='Print the most recent archived deck.json for a project, then exit.')
     parser.add_argument('--check', action='store_true', help='Validate only; write nothing.')
     parser.add_argument('--starter', action='store_true', help='Rewrite assets/starter.html from the sample deck, then exit.')
+    parser.add_argument('--no-fit', action='store_true', help='Skip the headless-browser check that every slide fits without scrolling.')
     args = parser.parse_args()
     if args.starter:
         (Path(__file__).resolve().parent.parent / 'assets' / 'starter.html').write_text(starter(), encoding='utf-8')
@@ -944,7 +977,14 @@ def main():
         shutil.rmtree(staging, ignore_errors=True)
         raise
     deck = target / 'deck.html'
-    print(json.dumps({'deck': str(deck), 'open': deck.as_uri(), 'data': str(target / 'deck.json'), 'seconds': data['seconds'], 'warnings': warnings}, indent=2))
+    fit = None
+    if not args.no_fit:
+        fit, note = fit_check(deck)
+        # A small window is allowed to shrink a slide; at laptop size and up an overflow means too much on the slide.
+        for line in [note] if note else [line for line in fit if 'overflow' in line and not line.startswith('1024x')]:
+            warnings.append(line)
+            print('warning: ' + line, file=sys.stderr)
+    print(json.dumps({'deck': str(deck), 'open': deck.as_uri(), 'data': str(target / 'deck.json'), 'seconds': data['seconds'], 'fit': fit, 'warnings': warnings}, indent=2))
     # Hosts without an artifact or page viewer just hand Greg this line.
     print(f'Open the deck in a browser: {deck.as_uri()}', file=sys.stderr)
 

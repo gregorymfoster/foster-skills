@@ -64,7 +64,7 @@ Keep it aggregate. No individual user names, emails or account IDs on slides, an
 
 ## When there is no data
 
-Set `usage.status` to `no-data`, list every place you looked in `usage.searched`, and leave out the usage slide (the renderer refuses one without data). The cover then reads "No usage data · Nothing measures this yet. Looked in: …". If there is no goal either, ask for it with a question slide; the renderer requires one. Then make a decision slide for how to start measuring when that is a real choice (add one event for the key action, connect the analytics tool, or keep running on judgment), with your recommendation and what it costs.
+Set `usage.status` to `no-data`, list every place you looked in `usage.searched`, and leave out the usage slide (the renderer refuses one without data). The cover then reads "No usage data · Nothing measures this yet. Looked in: …". If there is no goal either, ask for it with a question slide; the renderer requires one. When the project is measured but you can't get at the numbers (the analytics tool isn't connected, a sign-in expired), use `unreachable` instead: name each place and why in `searched`, and the cover reads "Usage not read · The data exists, but I could not read it: …". Don't call that `no-data`; it would tell the director nothing measures a product that is measured. Then make a decision slide for how to start measuring when that is a real choice (add one event for the key action, connect the analytics tool, or keep running on judgment), with your recommendation and what it costs.
 
 ## Save the recipe
 

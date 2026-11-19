@@ -44,7 +44,7 @@ class DeckTests(unittest.TestCase):
     def test_valid_deck_passes_without_errors(self):
         data, warnings = r.validate(deck())
         self.assertFalse(any('decision' in w or 'visual slide' in w for w in warnings))
-        self.assertEqual(data['seconds'], 25 + 35 + 50 + 35 + 50 + 25)
+        self.assertEqual(data['seconds'], 20 + 25 + 40 + 25 + 40 + 20)
 
     def test_decisions_must_be_interleaved(self):
         data = deck()
@@ -57,16 +57,59 @@ class DeckTests(unittest.TestCase):
     def test_deck_needs_a_decision_and_a_time_budget(self):
         data = deck()
         data['slides'] = [status('a'), status('b')]
+        with self.assertRaisesRegex(ValueError, '3 to 6'):
+            r.validate(data)
+        data['length'] = 'full'
         with self.assertRaisesRegex(ValueError, '3 to 12'):
             r.validate(data)
         data = deck()
-        for slide in data['slides']:
-            slide['seconds'] = 90
         data['slides'] += [status('e'), decision('z')]
         for slide in data['slides']:
             slide['seconds'] = 90
-        with self.assertRaisesRegex(ValueError, 'five minutes'):
+        with self.assertRaisesRegex(ValueError, 'a short check-in fits in 250'):
             r.validate(data)
+
+    def test_a_check_in_is_short_unless_asked_for_the_full_one(self):
+        data = deck()
+        data['slides'] = [status('a'), decision('x'), status('b'), decision('y'), status('c'), decision('z'), status('d')]
+        with self.assertRaisesRegex(ValueError, 'set length to full'):
+            r.validate(data)
+        data['length'] = 'full'
+        validated, warnings = r.validate(data)
+        self.assertTrue(any('No mock' in w for w in warnings))
+        data['length'] = 'long'
+        with self.assertRaisesRegex(ValueError, 'length must be'):
+            r.validate(data)
+        # A short deck picks its slides, so it is not nagged to include every kind.
+        validated, warnings = r.validate(deck())
+        self.assertEqual(validated['length'], 'short')
+        self.assertFalse(any(w.startswith('No ') for w in warnings))
+
+    def test_call_small_print_folds_into_details(self):
+        data, _ = r.validate(deck())
+        data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
+        page = r.page(data)
+        call = page.split('data-id="keep"')[1].split('</section>')[0]
+        shown, folded = call.split('<details class="more">')
+        self.assertIn("Why I'd pick B", shown)
+        self.assertIn('Gets costly to change', shown)
+        self.assertNotIn('I go with Postgres.</dd>', shown)
+        self.assertIn('weigh in</dt><dd>I go with Postgres.', folded)
+
+    def test_renderer_version_matches_the_plugin(self):
+        plugin = json.loads((SCRIPT.parents[3] / 'plugin.json').read_text())
+        self.assertEqual(r.VERSION, plugin['version'], 'Bump VERSION in render_deck.py with plugin.json.')
+
+    def test_skipped_fit_check_says_so(self):
+        import shutil
+        original = shutil.which
+        try:
+            r.shutil.which = lambda name: None
+            lines, note = r.fit_check(Path('deck.html'))
+        finally:
+            r.shutil.which = original
+        self.assertIsNone(lines)
+        self.assertIn('Fit not checked', note)
 
     def test_decision_shape_is_enforced(self):
         bad = deck()
@@ -92,6 +135,7 @@ class DeckTests(unittest.TestCase):
 
     def test_missing_timing_or_visual_only_warns(self):
         data = deck()
+        data['length'] = 'full'
         data['slides'] = [status('a'), decision('x'), status('b'), decision('y')]
         _, warnings = r.validate(data)
         self.assertTrue(any('No made decision' in w for w in warnings))
@@ -152,7 +196,7 @@ class DeckTests(unittest.TestCase):
         self.assertIn('data-label="Where things stand"', page)
         self.assertIn('data-label="Call 1 · Already made, reverse?"', page)
         self.assertIn('<span class="label" id="label"></span>', page)
-        self.assertIn('2 things need you, 1 of them about reversing something already in place. About 4 minutes.', page)
+        self.assertIn('2 things need you, 1 of them about reversing something already in place. About 3 minutes.', page)
         cover, close = page.split('<section class="slide close')
         self.assertNotIn('Not checked', cover)
         self.assertIn('Not checked: Support tickets', close)
@@ -254,12 +298,12 @@ class DeckTests(unittest.TestCase):
         data = deck()
         data['slides'] = [status('a'), status('b'), question, status('c'), decision()]
         data, _ = r.validate(data)
-        self.assertEqual(data['seconds'], 25 + 35 + 35 + 40 + 35 + 50 + 25)
+        self.assertEqual(data['seconds'], 20 + 25 + 25 + 30 + 25 + 40 + 20)
         data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
         page = r.page(data)
         self.assertIn('Question 1', page)
         self.assertIn('class="chip"', page)
-        self.assertIn('2 things need you. About 4 minutes.', page)
+        self.assertIn('2 things need you. About 3 minutes.', page)
         # The page script reads calls from the markup, so the markup must carry them.
         self.assertIn('data-kind="question" data-label="Question 1 · Only you know this" data-id="who" data-default="I treat them the same."', page)
         self.assertIn('data-kind="decision" data-label="Call 1 · Coming up, your call" data-id="db" data-timing="upcoming" data-recommended="1" data-default="I go with Postgres."', page)
@@ -315,7 +359,7 @@ class DeckTests(unittest.TestCase):
     def test_usage_slide_goal_and_cover_line_render(self):
         data, warnings = r.validate(self.usage_deck())
         self.assertFalse(any('goal' in w or 'usage' in w for w in warnings))
-        self.assertEqual(data['seconds'], 25 + 35 + 50 + 40 + 50 + 25)
+        self.assertEqual(data['seconds'], 20 + 25 + 40 + 30 + 40 + 20)
         data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
         page = r.page(data)
         self.assertIn('data-label="What the usage data says · search event log, Oct 1 to 26"', page)
@@ -366,6 +410,24 @@ class DeckTests(unittest.TestCase):
         data = self.usage_deck()
         data['slides'][2]['points'][0]['state'] = 'done'
         with self.assertRaisesRegex(ValueError, 'point state'):
+            r.validate(data)
+
+    def test_data_that_exists_but_cannot_be_read_is_not_no_data(self):
+        out_of_reach = dict(status='unreachable', goal='Staff find a product in under 10 seconds', searched=['Analytics dashboard (not connected to this session)'])
+        data = deck()
+        data['usage'] = copy.deepcopy(out_of_reach)
+        data, _ = r.validate(data)
+        data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
+        self.assertIn('<i>Usage not read</i>', r.page(data))
+        self.assertIn('The data exists, but I could not read it: Analytics dashboard (not connected to this session)', r.page(data))
+        for usage, message in ((dict(out_of_reach, searched=[]), 'out of reach'), (dict(out_of_reach, sources=[dict(name='x')]), 'out of reach')):
+            data = deck()
+            data['usage'] = usage
+            with self.assertRaisesRegex(ValueError, message):
+                r.validate(data)
+        data = self.usage_deck()
+        data['usage'] = copy.deepcopy(out_of_reach)
+        with self.assertRaisesRegex(ValueError, 'needs usage data'):
             r.validate(data)
 
     def test_no_goal_means_asking_for_one(self):
@@ -447,7 +509,7 @@ class DeckTests(unittest.TestCase):
         bad['slides'] = [status('a'), mock, dict(mock, id='m2'), dict(mock, id='m3'), decision()]
         with self.assertRaisesRegex(ValueError, 'at most 2 mocks'):
             r.validate(bad)
-        _, warnings = r.validate(deck())
+        _, warnings = r.validate(dict(deck(), length='full'))
         self.assertTrue(any('No mock' in w for w in warnings))
         self.assertTrue(any('No research' in w for w in warnings))
 

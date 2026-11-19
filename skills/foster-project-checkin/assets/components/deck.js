@@ -12,7 +12,7 @@
     recommended: Number(s.dataset.recommended), current: s.dataset.current === undefined ? undefined : Number(s.dataset.current),
     default: s.dataset.default
   }));
-  let state = {picks: {}, notes: {}, quiet: false};
+  let state = {picks: {}, notes: {}};
   try { state = Object.assign(state, JSON.parse(localStorage.getItem(key)) || {}); } catch (e) {}
   const save = () => { try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} };
   const budget = slides.reduce((t, s) => t + Number(s.dataset.seconds || 0), 0);
@@ -55,6 +55,7 @@
     while (s.scrollHeight > s.clientHeight + 1 && f > 0.7) { f -= 0.05; s.style.setProperty('--fit', f.toFixed(2)); }
   }
   addEventListener('resize', () => fit(slides[current]));
+  document.querySelectorAll('details').forEach(d => d.addEventListener('toggle', () => fit(slides[current])));
 
   // The recap line and the copied reply both say what kind of answer each ask got.
   const answerWord = {decision: 'Call', question: 'Answer', mock: 'Reaction', research: 'Ask users'};

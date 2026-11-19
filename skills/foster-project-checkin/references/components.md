@@ -41,7 +41,7 @@ Every slide names its kind in the top bar ("Where things stand", "Call 2 · Comi
 
 **visual**: the title, the lede, and one full-width visual.
 
-**decision**: an amber frame, two to four option cards (A, B, C, D) tagged "My rec" and "In effect now", then the recommendation, the default, how reversible it is, and a note field.
+**decision**: an amber frame, two to four option cards (A, B, C, D) tagged "My rec" and "In effect now", then why you'd pick yours, a chip for how reversible it is and when you need it, and a note field. The default, the reversibility note and the sources fold into a Details toggle.
 
 **question**: a blue frame, the context, optional quick-answer chips, a free-text answer, and what you will assume if he doesn't answer. With a visual, the picture sits on the left and the answer on the right. Use a question when you can't honestly write the options, for example "Which customers matter most for this?" or "Does this match what you saw in the store?". When you can write the options, make it a decision.
 
@@ -80,6 +80,10 @@ Every visual takes an optional `caption`.
 ## The palette
 
 Colors are tokens on `:root` in the stylesheet, redefined for dark mode. Accent green marks progress and recommendations, amber marks calls, blue marks questions, and the state colors mark point and step states. The goal tracker and the cover's usage line reuse them: green on track, amber at risk, red off track, gray when it's too early or there is no goal or data. Chart lines use three validated categorical slots (blue, orange, aqua) in fixed order: the first series is always blue. Don't ask for other colors. If a chart needs more than three series, it needs to be two charts.
+
+## Without the renderer
+
+If the `scripts/`, `assets/` and `references/` folders are missing (the skill was installed from its instructions alone), get them with `git clone --depth 1 https://github.com/gregorymfoster/foster-skills` into a temporary folder and use `foster-skills/skills/foster-project-checkin` as the skill directory. If Python can't run but the folder is there, build the deck by hand from `assets/starter.html` as described below; it comes out identical. If you can't reach the folder at all (a chat app with no files or tools), ask Greg to attach `starter.html`. Only if none of that is possible, write one plain self-contained HTML deck to the same contract (images inlined, arrow keys, options you can pick, a note per call, a recap with "Copy my calls"). Say in `gaps` whenever a deck was built by hand.
 
 ## Two ways to build, one look
 

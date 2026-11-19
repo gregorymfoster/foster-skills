@@ -8,7 +8,7 @@ Personal agent skills, one directory per skill under `skills/`. The repository i
   illustrated post on the personal research site.
 - `foster-draft-review`: annotated HTML feedback on personal drafts, with the source
   left untouched and reviews archived locally for later comparison.
-- `foster-project-checkin`: a five-to-six-minute slide briefing on an AI-run
+- `foster-project-checkin`: a three-minute slide briefing on an AI-run
   project, as one HTML page, with status slides and decision slides interleaved
   so you can make the calls while the agent keeps working. Each deck opens with
   the mission and roadmap, digs into the product's usage data (adoption,

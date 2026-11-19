@@ -1,26 +1,17 @@
 ---
 name: foster-project-checkin
-description: Brief Greg on an AI-run project as an IC engineer briefing a director of engineering. Gathers recent activity (git, PRs, threads, memory, plans), digs into the product's usage data (adoption, surprises, data problems, progress toward the goal), and renders a five-to-six-minute slide deck as one HTML file, never a canvas or PowerPoint. The cover always states the mission, roadmap and progress (and asks him to confirm the mission when it is a guess). The deck alternates status slides with calls: past decisions he may want to reverse, upcoming ones that need him, mocks of features and design changes for his reaction, and the questions for users that would teach us the most. Use when he says "check in", "brief me", "where are we", or "catch me up" in a Cursor workspace, Claude Code repo, Claude project, or any long-running work stream.
+description: Brief Greg on an AI-run project as an IC engineer briefing a director of engineering. Gathers recent activity (git, PRs, threads, memory, plans) and the product's usage data, then renders a short slide deck as one HTML file, never a canvas or PowerPoint. About three minutes and six slides by default, with few words, a picture on every slide and nothing that scrolls; a longer full deck only when he asks. The cover states the mission, roadmap and progress. Status slides alternate with calls: past decisions he may want to reverse, upcoming ones that need him, mocks to react to, and questions for users. Use when he says "check in", "brief me", "where are we", or "catch me up" in a Cursor workspace, Claude Code repo, Claude project, or any long-running work stream.
 ---
 
 # Project Check-in
 
-Greg is dropping into a project you have been working on, and he is playing director of engineering. You are the IC who did the work. Give him a five-to-six-minute slide briefing: what we are trying to achieve and how far along we are, what happened, what it adds up to, what it looks like, whether anyone is using it, what we could build next, and the calls that are his to make. Status and decisions alternate so he weighs in while the context is fresh, not in a pile at the end. Then go back to work.
+Greg is dropping into a project you have been working on, playing director of engineering. You are the IC who did the work. Give him a three-minute slide briefing: what we are trying to achieve and how far along we are, what changed, whether anyone is using it, and the calls that are his to make. Then go back to work.
 
-## Who you are writing for
+The deliverable is one file, `deck.html`, and nothing else: no canvas, PowerPoint, Keynote, Google Slides, Markdown summary or separate document, in any app, even when such a tool looks like a better fit (Greg, 2026-10-27). Publishing that same file as an Artifact in Claude counts as delivering it.
 
-Write for a busy executive who just walked in from another meeting. He owns the project but hasn't followed the threads and doesn't remember the internal names. He won't ask what a term means. He just stops reading. Every slide has to make sense to someone who joined today. (Greg, 2026-10-24, on a first deck that missed: too many technical terms, too much assumed knowledge, not enough pictures of the features, before-and-afters, or reasons each one matters. The plain-language redo, with pictures on most slides, landed.)
+## The three rules that decks keep breaking
 
-- Open the cover with `what_it_is`: one sentence on what the project is and who it's for, before any news.
-- Use plain words. Describe what a thing does for the user, not what the code calls it. If a product name matters because he'll see it in the app, introduce it once with a plain description, such as "Shoot match (Argus learns your look from a few photos you edit)".
-- Keep insider detail off the slides. Commit hashes, branch names, file paths, thread names, model names, metric names and acronyms go in each slide's `evidence`, which renders as a collapsed Sources list. The renderer warns when it spots shorthand in slide text.
-- Translate every number into what it means for the user: "about 10% closer to your own edits" or "half the scrolling gone", never "9.07 vs 10.10 dE". Keep it to one or two rounded numbers per slide.
-- Give every information slide a `why`: one sentence on why it matters, tied to the goal he set.
-- Before rendering, do a newcomer pass. Reread each slide as someone who has never seen the project, and replace any word they would have to ask about.
-
-## Fewer words
-
-Greg's second round of feedback (2026-11-19) was that the decks had become wordy: paragraphs where a sentence would do, five points where two mattered, and slides that scrolled. Each slide is one idea, in the fewest words that carry it, with a picture doing most of the work. The renderer counts the words the director reads and refuses a slide over its budget, so this is a rule, not a hope:
+**Few words.** One idea per slide, in the fewest words that carry it (Greg, 2026-11-19, after decks turned wordy and started to scroll). The renderer counts the words he reads and refuses a slide over budget:
 
 | Where | Budget |
 |---|---|
@@ -28,135 +19,60 @@ Greg's second round of feedback (2026-11-19) was that the decks had become wordy
 | Lede | one sentence, 22 words |
 | Points | at most 3, up to 10 words each |
 | Why it matters | 16 words |
-| Decision context | 28 words; each option a 5-word label and a 14-word consequence; recommendation 20; default 14 |
-| Question context | 28 words; quick answers 60 characters |
-| Research asks | 2 or 3; question 16 words, what it changes 14, how to ask 8 |
+| Decision | context 28 words; options a 5-word label and a 14-word consequence; recommendation 20 |
 | Whole slide | status and usage 80 words, visual 50, decision 120, question 85, mock 70, research 130 |
 | Cover | headline 18 words, what it is 20, mission 20, roadmap labels 5 |
-| Voiceover (`say`) | 35 words, hidden until the director presses V |
 
-When a slide blows its budget, cut words, split the idea across two slides, or move the detail to `evidence`. Never ask for a smaller font: the look is fixed, and the page shrinks only as a last resort. The habits behind the table come from the distill and craft-floor playbooks in Greg's impeccable skills: say a thing once (the title does not restate the lede, the lede does not restate the points), let the heading carry its own weight with nothing above it, keep groups tight and separations generous, and remove every element that does not change what the reader does. The slide's kind ("Call 2 · Coming up, your call") lives in the top bar, not on the slide.
+Over budget means cut words, split the idea, or move detail to `evidence`. Never ask for a smaller font. Say a thing once: the title does not restate the lede, and the lede does not restate the points. A call slide shows only the choice; its default, reversibility note and sources fold into a Details toggle.
 
-Explain like a colleague, not a report. Prefer "stores that try it keep using it" to "retention is strong". One number per sentence, rounded. If a sentence needs a comma to survive, try two sentences.
+**Plain words.** Write for a busy executive who walked in from another meeting and doesn't remember the internal names (Greg, 2026-10-24). Say what a thing does for the user, not what the code calls it. Commit hashes, file paths, branch names, model names and acronyms go in `evidence`. Translate each number into what it means ("half the scrolling gone", never "9.07 vs 10.10 dE"), one rounded number per sentence. Prefer "stores that try it keep using it" to "retention is strong". Before rendering, reread each slide as someone who joined today.
 
-## Show, don't tell
-
-A picture carries a feature faster than a paragraph, and it is the only thing that fits on a slide once the words are cut. Every information slide (status, visual, usage) carries a visual; the renderer refuses one without. When there is no screenshot, draw the numbers: `stats` for a headline figure, `bars` for a comparison, `goal` for progress, `flow` for a sequence, `compare` for a rule that changed. Reach for these in this order:
-
-- A before and after. Use a `slider` when you have two screenshots of the same view (he drags a handle across them), or a `gallery` for two or three images side by side with short labels ("Straight from the camera", "Argus", "Your own edit"). This is the strongest slide for anything that changes what the user sees.
-- A real screenshot of the thing working, as an `image` on a visual slide or beside the points of a status slide.
-- A chart for the number that matters: `stats` for one or two headline numbers with how they moved, `line` for a trend over the window, `bars` for one comparison (old way, new way, best possible). Title each chart with a plain question.
-
-Do a squint pass before rendering: cover the text on each slide and check that the picture and the title alone tell the story. If they don't, the picture is wrong, not the words too few.
-
-Get images the cheap way first: recent release screenshots, bench or test outputs already on disk, a quick headless browser run of the UI. A real screenshot or real output beats any diagram you could draw. Show a failure too when there is one. A picture of where the work still falls short is the most honest bad-news slide.
-
-Respect the project's privacy rules for anything Greg looks at. Read project memory for them before choosing images (in Argus, for example: no photos of his ex, so nothing from the Apr 2022 to Apr 2024 window). Look at every image yourself before it goes in, and prefer stock or sample content in app screenshots.
-
-## One look, whatever agent runs it
-
-Greg reads these decks from Claude Code, Codex, Cursor and Claude projects, and they should look like one series. So the look is not yours to design. Like the lessons in Matt Pocock's teach skill, which all link one shared stylesheet and reuse a growing component library, every deck here is built from the components in [components.md](references/components.md): one stylesheet, one script, and a fixed set of slide and visual types. You choose components by the job each slide does and fill them with words, numbers and pictures. You never write HTML, CSS or inline styles, and the renderer refuses fields it doesn't know.
-
-Before your first deck in a session, skim the component table in [components.md](references/components.md). If you want to see the look, open `assets/starter.html`, a finished deck that uses every component. When a slide needs something no component does, use the closest one, say what was missing in `gaps`, and suggest the component to Greg. New components are added to this skill, not improvised in a deck.
-
-## One HTML file, nothing else
-
-The deliverable is always one file, `deck.html`, made by the renderer or by hand from `assets/starter.html`. Don't make anything alongside it or instead of it: no Cursor canvas, no PowerPoint or .pptx, no Keynote or Google Slides, no Markdown or Word summary, no separate check-in document. That holds even when a slide, document or canvas tool is available and looks like a better fit, and in every app (Cursor, Claude Code, Codex, ChatGPT, Claude projects). (Greg, 2026-10-27, after a Cursor run produced a canvas, a check-in document and a PowerPoint deck but no HTML page.) Publishing that same `deck.html` as an Artifact in Claude counts as delivering it. The archive's `deck.json` and `calls.md` are records, not deliverables.
+**A picture on every slide.** Every information slide carries a visual; the renderer refuses one without. In order of strength: a before and after (`slider` or `gallery`), a real screenshot (`image`), then a chart drawn from the numbers (`stats`, `goal`, `line`, `bars`, `flow`, `compare`). Cover the text and check that the picture and title alone tell the story. Get pictures the cheap way first: screenshots already in the repo, test or release output on disk, the project's own screenshot harness, or `scripts/capture.js` for anything with a URL or an HTML file (it shoots several pages at one size so sliders line up). Show a failure when there is one. Respect the project's privacy rules for anything he looks at, and look at every image yourself before it goes in.
 
 ## The contract
 
-He owns direction, scope, risk, and spend. You own execution. A call belongs in the deck only if its answer changes the goal, the scope, the timeline, the risk, or the cost, or if he would be surprised to learn later that you made it alone. Naming, internal refactors, and anything with one sensible answer stay off the slides; decide those yourself.
+He owns direction, scope, risk and spend. You own execution. A call belongs in the deck only if its answer changes the goal, scope, timeline, risk or cost, or if he would be surprised to learn you made it alone. Naming, refactors and anything with one sensible answer stay off the slides.
 
-Tell the truth plainly. Bad news goes early and gets its own slide when it matters. Every claim traces to something you read: a commit, a PR, a thread, a file, a test run. Mark guesses as guesses. Never invent a metric to fill the cover. "Net effect" means what is different for a user or for the system now, not a list of commits.
+Tell the truth plainly. Bad news goes early. Every claim traces to something you read, and guesses are marked as guesses. Never invent a metric.
 
-The check-in does not stop the work. Every decision carries the default you will follow if he never answers. For anything cheap to reverse, keep moving on your recommendation while he decides. For a one-way door (production changes, deleting data, spending money, messages outside the project), the default is to wait. Before you apply a default, check whether he has said anything since that overrides it (asking for more of the work you were about to trim, say), and follow his words.
-
-Gathering is read-only. Do not push, merge, comment, post, or message anyone in order to build the briefing.
+The check-in does not stop the work. Every call carries the default you follow if he never answers. For anything cheap to reverse, keep moving on your recommendation. For a one-way door (production, deleting data, spending money, messages outside the project) the default is to wait. Gathering is read-only: don't push, merge, comment or message anyone to build the briefing.
 
 ## Step 1: Gather
 
-The renderer, template, and deck data guide live next to this file in `scripts/`, `assets/`, and `references/`. If they are missing (for example, when the skill was installed from its instructions alone), get them with `git clone --depth 1 https://github.com/gregorymfoster/foster-skills` into a temporary folder and use `foster-skills/skills/foster-project-checkin` as `<skill-directory>`. The repository is private: in a cloud session, attach it to the session first, then clone. If Python can't run but the folder is there, build the deck by hand from `assets/starter.html`, as the last section of [components.md](references/components.md) describes; it comes out identical. If you can't reach the folder at all (a chat app with no files or tools), ask Greg to attach `starter.html` and work from that. Only if neither is possible, write one plain self-contained HTML deck to the same contract (images inlined, arrow keys, options you can pick, a note per call, a recap with "Copy my calls"). Say in `gaps` whenever a deck was built by hand.
+The renderer and its guides live beside this file in `scripts/`, `assets/` and `references/`. If they are missing, see "Without the renderer" in [components.md](references/components.md).
 
-Set the window first. Run `python3 <skill-directory>/scripts/render_deck.py --latest <project-id> --archive <archive>` to find the previous check-in. If one exists, the window starts there, and its `deck.json` and `calls.md` tell you what he decided last time. If none exists, use the last seven days, or the whole project if it is younger.
+Set the window: `python3 <skill-directory>/scripts/render_deck.py --latest <project-id> --archive <archive>` finds the previous check-in, whose `deck.json` and `calls.md` say what he decided last time. With none, use the last seven days.
 
-Then read whatever this environment has, quickly. Spend a few minutes of tool calls, not an afternoon. Skip what is unreachable and list it in `gaps`.
+Read what this environment has, in a few minutes of tool calls. The code says what changed (`git log --since=<date> --no-merges --stat`, branches ahead, uncommitted work). PRs and issues say what is waiting on whom. The conversation says why (project chat and threads, or the session and plan files). Memory and plans say what was intended (`CLAUDE.md`, `AGENTS.md`, memory folders, ADRs, specs, roadmaps). Collect pictures as you go, and keep a private list of each claim and its source. List what you couldn't reach in `gaps`.
 
-The code tells you what actually changed: `git log --since=<date> --no-merges --stat` on the default branch and active branches, branches ahead of the default, uncommitted work, and CI status. PRs and issues tell you what is waiting on whom: use `gh` or the GitHub MCP tools for merged and open PRs, unanswered review comments, failing checks, and new issues. The conversation tells you why: in a Claude project, read the project chat and the thread list, paying attention to blocked and review-ready threads; in Cursor or Claude Code, use the current session and any plan or progress files in the workspace. Memory and plans tell you what was intended: `CLAUDE.md`, `AGENTS.md`, `.cursor/rules`, memory folders and `MEMORY.md` indexes, ADRs or decision logs, specs, roadmaps, TODO files, release notes.
+## Step 2: Check the usage data
 
-Collect pictures while you gather (see Show, don't tell), not as an afterthought. Note any analytics tools, data folders or tracking code you pass on the way; the next step needs them.
+Find out whether anyone uses the thing and whether the work is moving its number, following [usage-data.md](references/usage-data.md): the goal first, then whatever data you can reach. This never blocks the check-in. With no data, say so on the cover (`usage.status` of `no-data`, with where you looked; `unreachable` when the data exists but this session can't read it) and ask for the goal by question slide if there isn't one. Never fill the gap with a made-up or unlabeled number.
 
-Keep a private evidence list as you go, one line per claim with its source. You will need it for the `evidence` lists and for any follow-up question.
+## Step 3: Pick the story and the calls
 
-## Step 2: Dig into the usage data
+Write the headline first: the net effect in one sentence he could repeat to his own boss. Then choose the few slides that carry it. [story-and-calls.md](references/story-and-calls.md) covers the cover's mission and roadmap (and the `mission` question that must come first when the mission isn't confirmed), which past and upcoming decisions deserve a slide, question slides, and the product-manager slides: questions for users and mocks.
 
-Before writing the story, find out whether anyone is using the thing and whether the work is moving the number it was meant to move. Work through [usage-data.md](references/usage-data.md): pin down the goal first, then find whatever data this environment can reach (analytics connectors such as Amplitude, BigQuery, Snowflake, Hex or Datadog; signed-in command-line tools; the product's read-only database; logs; tracking code and saved queries in the repo; proxy signals when there is no telemetry), and read it the way a data scientist would. You come out with four things: adoption, the one or two findings that stand out, the problems with the data or the blockers to measuring, and where things stand against the goal.
+## Step 4: Build the deck
 
-This step never blocks the check-in. If nothing measures the project, say so on the cover (`usage.status` of `no-data`, with where you looked), ask for the goal with a question slide if there isn't one, and offer a decision on how to start measuring. Never fill the gap with a made-up or unlabeled proxy number.
+A check-in is **short** unless he asks for the full one: three to six slides, about three minutes. The renderer adds the cover and the closing recap. A typical short deck: the mission question if it isn't confirmed, what changed (status or a before and after), the call that raises, what the usage data says, and the call you need next. Drop a status slide before you drop a call. Set `"length": "full"` (up to twelve slides, about six minutes, with research and mocks) only when he asks for the long version or a first check-in on a big project needs it.
 
-## Step 3: Name the mission and where we are on the roadmap
+Put each call right after the slide that gives its context. The renderer rejects a deck whose first call comes after the third slide, that runs three information slides in a row, or that leaves an unconfirmed mission unasked.
 
-Every deck opens on the same three things: the mission, the roadmap toward it, and how far along we are. Greg should never have to reconstruct what the project is for from the status slides.
+Write the deck JSON described in [deck-data.md](references/deck-data.md) next to its images, picking each visual from the table in [components.md](references/components.md). The look is fixed: you choose components and fill them, and never write HTML, CSS or styles. Write in Greg's voice: short sentences mixed with longer ones, no em-dashes, no "it's not X, it's Y", none of delve, tapestry, realm, unleash, unlock, paramount, harness, cutting-edge or revolutionize. `say` is the spoken version of a slide; it is hidden until he presses V, so the slide must stand without it.
 
-Look for the mission in what Greg actually said: the kickoff message, the project's instructions, a goal he named at an earlier check-in (the last `calls.md`), project memory, a roadmap or spec file. Write it as one outcome sentence for a person ("Every store's staff can find any product in seconds"), not a feature list. Lay out the roadmap as two to six milestones of a few words each, marked `done`, `now`, `next` or `later`, with a date when there is one. The roadmap strip is the progress report; the headline and the usage line carry the numbers.
-
-Then be honest about how sure you are. Mark it `confirmed` only when Greg said or approved it, and name where (`source`). If you assembled it from scattered evidence, it is `inferred`. If the evidence disagrees with itself (the code is heading one way, his last message another) or there is nothing to go on, it is `unclear`. Either way, the first call in the deck is a question slide with id `mission` asking him to confirm or correct it, with the roadmap as a `flow` beside it and quick answers such as "Yes, that's it". A mission that was confirmed weeks ago but that the work has drifted from deserves the same question. Once he answers, the mission goes into project memory, and later decks mark it `confirmed`.
-
-## Step 4: Find the story and the calls
-
-Write the headline first: the net effect in one plain sentence that Greg could repeat to his own boss without explaining a single word. Then pick two to four status points that support or complicate it. Include what slipped, what you dropped, and what is fragile.
-
-Past decisions are the ones already baked in, often made quietly by you or an earlier session: a library or framework, a data model, a scope cut, a deferral, a workaround that became permanent, a reading of an ambiguous ask, a quality bar such as skipped or failing tests, or where the effort went. Surface the ones a reasonable director might disagree with, especially where the cost of reversing grows each week. Say what is in effect, what reversing costs now, and when it gets expensive.
-
-Upcoming decisions are forks ahead: what to build next, build versus buy, scope against timeline, quality against speed, and anything that needs his authority. Give each two to four real options, labeled in plain words, each with one sentence on what happens if he picks it. Include "keep as is" or "do nothing" when that is a real choice. Recommend one, explain why in a sentence, and state your default and how reversible it is.
-
-Some things you need from him have no options you can write: which customers matter most, whether a screenshot matches what he saw, what a vague ask meant. Make those question slides, at most three, each with what you will assume if he doesn't answer. Don't turn a real decision into a question to dodge making a recommendation.
-
-Aim for three to five decisions and questions, with at least one of each timing when the evidence supports it. If there is honestly no past decision worth revisiting, say so out loud on a status slide instead of inventing one; the renderer only warns.
-
-## Step 5: Think like a PM
-
-Spend a few minutes as the project's product manager before you build the deck. The status slides say what happened. This step asks what we should learn and build next, and gets Greg's reaction while it is still cheap to change course. Start from the mission and the usage findings: where is the gap between what the product does and what the mission needs, and which unknown, if answered, would most change what we build?
-
-**Questions that steer.** List the questions whose answers would move the plan the most, then keep the best two to four. A good question has answers that point in different directions ("What made you go back to the old way?" splits training from product fixes). A weak one gets the same answer from everyone, or one we would ignore. Each question goes to whoever can actually answer it. Questions only Greg can answer (who the product is really for, what success looks like, which user he cares about most) become question slides. Questions for users go on one research slide: who to ask, the exact wording, what each likely answer would change, and the cheapest way to ask (a one-tap poll, a two-line email, a text to three friends who use it). Greg ticks the ones worth sending. Nothing goes to users unless he ticks it.
-
-**Mocks to react to.** Pick one or two ideas worth showing: a new feature, or a change to the UI or flow, that the evidence points to (a usage finding, a complaint, a roadmap step, a rough edge you saw while screenshotting). Show it as a picture, never a paragraph. Build the mock outside the product: a static HTML page that reuses the app's real stylesheet and components, rendered with a headless browser to a PNG the same size as a real screenshot of today's screen, or an SVG drawn over that screenshot. Put it beside today's screen with a `slider` or `gallery` so the change is obvious. Don't build the feature, push a branch, or touch the product to make a mock. Use stock or sample content, and respect the project's privacy rules as for any screenshot. Each mock slide says what the user gets (title), the problem it fixes (lede), why this idea over others (`why`), a rough cost, and your default, usually "park it". Greg answers with Build it, Change it or Not now, plus a note.
-
-Keep this step proportionate. One research slide and one or two mocks fit in about a minute and a half. If the project is a weekend toy or the evidence gives you nothing worth mocking, skip the mock and say why in `gaps`; the renderer only warns.
-
-## Step 6: Build the deck
-
-Plan seven to ten slides for five to six minutes. The renderer adds the cover (with the mission block) and the closing recap. A typical arc runs: the mission question when the mission isn't confirmed, what it does now (status with a screenshot), the past call that raises (decision), a before and after of the main change (visual), what the usage data says (usage slide with the goal tracker), the questions for users that data raises (research), the feature or design change you'd build next (mock), and what you need from him (decision). Trim status slides to make room for the PM slides rather than letting the deck run long. Every deck carries the `usage` summary for the cover, and a usage slide whenever there is data. Place each decision right after the slide that gives its context. A question, mock or research slide counts as a call and can stand in for a decision anywhere in that arc. The renderer rejects a deck whose first call comes after the third slide, that runs three information slides in a row, or that leaves an unconfirmed mission unasked.
-
-Each slide carries one idea that Greg can absorb in about twenty seconds, inside the budgets in Fewer words. Titles are plain-language claims, not topics. The `lede` is one sentence on what changed for the user. Up to three points, and only the ones that change what he does. `why` says why it matters in a line. `say` is what you would say out loud, one or two conversational sentences; it stays hidden until he presses V, so the slide has to stand without it. Sources go in `evidence`.
-
-Write in Greg's voice rules for anything a human reads. Mix short sentences with longer ones and never put three of similar length in a row. Do not use em-dashes. Skip delve, tapestry, realm, unleash, unlock, paramount, harness, cutting-edge, revolutionize, and the transitions ultimately, in conclusion, and to summarize. Do not frame anything as "it's not X, it's Y." Use plain, specific words: numbers he can picture, names, dates. If a humanizer skill is available, run it in embedded mode on your slide copy only, keeping facts and option labels intact.
-
-Write the deck JSON described in [the deck data guide](references/deck-data.md) to a temporary work folder, next to the images it uses. Pick each visual from the table in [components.md](references/components.md).
-
-## Step 7: Render and deliver
+## Step 5: Render, check, deliver
 
 ```sh
 python3 <skill-directory>/scripts/render_deck.py --deck <deck.json> --archive <archive>
 ```
 
-The default archive is `~/Documents/Project Check-ins`. Use `--archive` when home is not durable: in a Claude project, use the shared project folder (for example `/mnt/project-files/checkins`), and in a throwaway container, use the scratchpad and say the history will not survive. Archives must sit outside Git repositories. `--check` validates without writing anything. Read the warnings, and fix every plain-language and missing-picture warning you honestly can.
+The default archive is `~/Documents/Project Check-ins`. In a Claude project use the shared folder (`/mnt/project-files/checkins`); in a throwaway container use the scratchpad and say the history won't survive. Archives sit outside Git repositories. `--check` validates without writing.
 
-No slide may scroll. When Node and Playwright are available, run `node <skill-directory>/scripts/check_fit.js <deck.html>`: it opens the deck at three laptop sizes and names any slide that overflows its box and how far the page had to shrink it (the page shrinks an overflowing slide by itself, but a shrunk slide is a slide with too much on it). Fix every overflow at 1280 by 720 by cutting words or splitting the slide. Then look at the rendered deck yourself, at desktop and phone widths and in light and dark mode: every picture loads and reads at its size, before-and-after rows stack on a phone, nothing scrolls sideways. Make one pass of fixes, then ship.
+No slide may scroll. The renderer opens the finished deck in a headless browser and warns about any slide that overflows at laptop size; fix those by cutting words or splitting the slide. When it says "Fit not checked" (no Node or Playwright), that is not a pass: look at every slide yourself. Either way, look at the deck once at desktop and phone widths, light and dark, and check that every picture loads and reads at its size.
 
-Deliver `deck.html` and only `deck.html` (see One HTML file, nothing else). If an Artifact or page-publishing tool is available (Claude), publish `deck.html` (it is self-contained) and link it. Otherwise (Cursor, Codex, ChatGPT and the rest) write it to disk, open it in the browser if you can, and always end your message with the one line the renderer prints, "Open the deck in a browser: file://…", so he can click straight to it. A hand-built deck gets the same line with its own path. If the host has native decision cards, also post the single most time-sensitive call as one card (a one-way door if there is one), so he can answer from a phone. If he answers the card, record it and drop that call from the deck.
+Deliver `deck.html` only. In Claude, publish it as an Artifact and link it. Elsewhere, write it to disk and end your message with the line the renderer prints, "Open the deck in a browser: file://…". If the host has decision cards, also post the single most time-sensitive call as a card. Keep the chat message to two or three sentences: the headline, how many calls are waiting, which is most urgent, and what you continue on meanwhile.
 
-Keep the chat message to two or three plain sentences: the headline, how many calls are waiting (and whether the mission needs his confirmation), which one is most urgent, and what you are continuing on in the meantime. The deck is the deliverable.
+## Step 6: Apply the calls
 
-When rendering behavior changes, check the deck in a browser at desktop and phone widths and in dark mode. Step through with the arrow keys, pick options, react to a mock, tick a research question, write a note, and confirm "Copy my calls" produces the reply text.
-
-## Step 8: Apply the calls and keep working
-
-Greg answers by pasting the text from "Copy my calls", by tapping a card, or in his own words. Each call he makes is his approval for that path, and it covers what the option described. Write his calls to `calls.md` in the deck's archive folder, then record each decision wherever the project keeps decisions (project memory, a decision log, an ADR), with the date and his reason if he gave one. A goal he names in answer to a question goes into project memory with the usage recipe, so the next check-in tracks it. A note that states a standing rule ("always fix tests, you don't have to ask") goes into the project's rules file too. His answer to the mission question goes into project memory as the mission and roadmap, marked confirmed with the date. For mocks, Build it puts the idea on the roadmap as planned work, Change it means you revise the mock with his note and show it again next time, and Not now gets logged so you don't pitch it again without new evidence. Ticked research questions are his approval to send exactly those questions, the way the card described; collect the answers and open the next deck's usage or status slide with what users said. Hand each call to whoever owns that work, change the plan to match, and say in one line what you changed.
-
-If he never answers, follow the defaults for cheap and costly calls and carry one-way calls to the next check-in as still open. The next deck opens with follow-through: what he decided, and what happened because of it.
-
-When he gives feedback on the briefing itself, fold it into this skill in the same session.
-
-## Maintaining this skill
-
-Canonical source: `/Users/gregfoster/code/skills/skills/foster-project-checkin` in `https://github.com/gregorymfoster/foster-skills`. Greg has authorized committing and pushing updates to this skill without asking again; [AGENTS.md](AGENTS.md) has the rules. The repository has no CI on purpose, so run `python3 -m unittest discover -s skills/foster-project-checkin/scripts -p 'test_*.py'` locally before every push and don't push on a failure. Installed copies should be symlinks to this directory. Personal check-in archives never go into the repository. The authorization covers skill maintenance, not check-in data.
+He answers by pasting "Copy my calls", tapping a card, or in his own words. [after-the-deck.md](references/after-the-deck.md) says how to record each kind of answer and what to do when he never answers. When he gives feedback on the briefing itself, fold it into this skill in the same session ([AGENTS.md](AGENTS.md) has the rules for changing it).

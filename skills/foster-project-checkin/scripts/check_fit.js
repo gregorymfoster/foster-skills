@@ -19,6 +19,8 @@ const LAPTOP = '1280x720';
     const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
     await page.goto('file://' + path.resolve(file));
     const n = await page.evaluate(() => document.querySelectorAll('.slide').length);
+    const said = await page.evaluate(() => [...document.querySelectorAll('.say')].some(e => getComputedStyle(e).display !== 'none'));
+    if (said && !failed) { console.log('voiceover: showing on load; it should start hidden'); failed = true; }
     const rows = [];
     for (let i = 0; i < n; i++) {
       await page.evaluate(i => location.hash = '#' + (i + 1), i);
