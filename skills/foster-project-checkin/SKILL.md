@@ -18,13 +18,36 @@ Write for a busy executive who just walked in from another meeting. He owns the 
 - Give every information slide a `why`: one sentence on why it matters, tied to the goal he set.
 - Before rendering, do a newcomer pass. Reread each slide as someone who has never seen the project, and replace any word they would have to ask about.
 
+## Fewer words
+
+Greg's second round of feedback (2026-11-19) was that the decks had become wordy: paragraphs where a sentence would do, five points where two mattered, and slides that scrolled. Each slide is one idea, in the fewest words that carry it, with a picture doing most of the work. The renderer counts the words the director reads and refuses a slide over its budget, so this is a rule, not a hope:
+
+| Where | Budget |
+|---|---|
+| Title | 10 words, written as a claim |
+| Lede | one sentence, 22 words |
+| Points | at most 3, up to 10 words each |
+| Why it matters | 16 words |
+| Decision context | 28 words; each option a 5-word label and a 14-word consequence; recommendation 20; default 14 |
+| Question context | 28 words; quick answers 60 characters |
+| Research asks | 2 or 3; question 16 words, what it changes 14, how to ask 8 |
+| Whole slide | status and usage 80 words, visual 50, decision 120, question 85, mock 70, research 130 |
+| Cover | headline 18 words, what it is 20, mission 20, roadmap labels 5 |
+| Voiceover (`say`) | 35 words, hidden until the director presses V |
+
+When a slide blows its budget, cut words, split the idea across two slides, or move the detail to `evidence`. Never ask for a smaller font: the look is fixed, and the page shrinks only as a last resort. The habits behind the table come from the distill and craft-floor playbooks in Greg's impeccable skills: say a thing once (the title does not restate the lede, the lede does not restate the points), let the heading carry its own weight with nothing above it, keep groups tight and separations generous, and remove every element that does not change what the reader does. The slide's kind ("Call 2 · Coming up, your call") lives in the top bar, not on the slide.
+
+Explain like a colleague, not a report. Prefer "stores that try it keep using it" to "retention is strong". One number per sentence, rounded. If a sentence needs a comma to survive, try two sentences.
+
 ## Show, don't tell
 
-A picture carries a feature faster than a paragraph. Give every feature or result slide a visual, and aim for pictures on at least half the information slides (the renderer warns below that):
+A picture carries a feature faster than a paragraph, and it is the only thing that fits on a slide once the words are cut. Every information slide (status, visual, usage) carries a visual; the renderer refuses one without. When there is no screenshot, draw the numbers: `stats` for a headline figure, `bars` for a comparison, `goal` for progress, `flow` for a sequence, `compare` for a rule that changed. Reach for these in this order:
 
 - A before and after. Use a `slider` when you have two screenshots of the same view (he drags a handle across them), or a `gallery` for two or three images side by side with short labels ("Straight from the camera", "Argus", "Your own edit"). This is the strongest slide for anything that changes what the user sees.
 - A real screenshot of the thing working, as an `image` on a visual slide or beside the points of a status slide.
 - A chart for the number that matters: `stats` for one or two headline numbers with how they moved, `line` for a trend over the window, `bars` for one comparison (old way, new way, best possible). Title each chart with a plain question.
+
+Do a squint pass before rendering: cover the text on each slide and check that the picture and the title alone tell the story. If they don't, the picture is wrong, not the words too few.
 
 Get images the cheap way first: recent release screenshots, bench or test outputs already on disk, a quick headless browser run of the UI. A real screenshot or real output beats any diagram you could draw. Show a failure too when there is one. A picture of where the work still falls short is the most honest bad-news slide.
 
@@ -74,7 +97,7 @@ This step never blocks the check-in. If nothing measures the project, say so on 
 
 Every deck opens on the same three things: the mission, the roadmap toward it, and how far along we are. Greg should never have to reconstruct what the project is for from the status slides.
 
-Look for the mission in what Greg actually said: the kickoff message, the project's instructions, a goal he named at an earlier check-in (the last `calls.md`), project memory, a roadmap or spec file. Write it as one outcome sentence for a person ("Every store's staff can find any product in seconds"), not a feature list. Lay out the roadmap as two to six milestones in plain words, each `done`, `now`, `next` or `later`, with a date when there is one. The progress line says where the work sits on that roadmap, using the usage numbers when you have them.
+Look for the mission in what Greg actually said: the kickoff message, the project's instructions, a goal he named at an earlier check-in (the last `calls.md`), project memory, a roadmap or spec file. Write it as one outcome sentence for a person ("Every store's staff can find any product in seconds"), not a feature list. Lay out the roadmap as two to six milestones of a few words each, marked `done`, `now`, `next` or `later`, with a date when there is one. The roadmap strip is the progress report; the headline and the usage line carry the numbers.
 
 Then be honest about how sure you are. Mark it `confirmed` only when Greg said or approved it, and name where (`source`). If you assembled it from scattered evidence, it is `inferred`. If the evidence disagrees with itself (the code is heading one way, his last message another) or there is nothing to go on, it is `unclear`. Either way, the first call in the deck is a question slide with id `mission` asking him to confirm or correct it, with the roadmap as a `flow` beside it and quick answers such as "Yes, that's it". A mission that was confirmed weeks ago but that the work has drifted from deserves the same question. Once he answers, the mission goes into project memory, and later decks mark it `confirmed`.
 
@@ -104,7 +127,7 @@ Keep this step proportionate. One research slide and one or two mocks fit in abo
 
 Plan seven to ten slides for five to six minutes. The renderer adds the cover (with the mission block) and the closing recap. A typical arc runs: the mission question when the mission isn't confirmed, what it does now (status with a screenshot), the past call that raises (decision), a before and after of the main change (visual), what the usage data says (usage slide with the goal tracker), the questions for users that data raises (research), the feature or design change you'd build next (mock), and what you need from him (decision). Trim status slides to make room for the PM slides rather than letting the deck run long. Every deck carries the `usage` summary for the cover, and a usage slide whenever there is data. Place each decision right after the slide that gives its context. A question, mock or research slide counts as a call and can stand in for a decision anywhere in that arc. The renderer rejects a deck whose first call comes after the third slide, that runs three information slides in a row, or that leaves an unconfirmed mission unasked.
 
-Each slide carries one idea that Greg can absorb in about twenty seconds. Titles are plain-language claims, not topics. The `lede` says what changed for the user. Use two or three short points at most. `why` says why it matters. `say` is what you would say out loud, one or two conversational sentences, and it shows as a voiceover strip. Sources go in `evidence`.
+Each slide carries one idea that Greg can absorb in about twenty seconds, inside the budgets in Fewer words. Titles are plain-language claims, not topics. The `lede` is one sentence on what changed for the user. Up to three points, and only the ones that change what he does. `why` says why it matters in a line. `say` is what you would say out loud, one or two conversational sentences; it stays hidden until he presses V, so the slide has to stand without it. Sources go in `evidence`.
 
 Write in Greg's voice rules for anything a human reads. Mix short sentences with longer ones and never put three of similar length in a row. Do not use em-dashes. Skip delve, tapestry, realm, unleash, unlock, paramount, harness, cutting-edge, revolutionize, and the transitions ultimately, in conclusion, and to summarize. Do not frame anything as "it's not X, it's Y." Use plain, specific words: numbers he can picture, names, dates. If a humanizer skill is available, run it in embedded mode on your slide copy only, keeping facts and option labels intact.
 
@@ -118,7 +141,7 @@ python3 <skill-directory>/scripts/render_deck.py --deck <deck.json> --archive <a
 
 The default archive is `~/Documents/Project Check-ins`. Use `--archive` when home is not durable: in a Claude project, use the shared project folder (for example `/mnt/project-files/checkins`), and in a throwaway container, use the scratchpad and say the history will not survive. Archives must sit outside Git repositories. `--check` validates without writing anything. Read the warnings, and fix every plain-language and missing-picture warning you honestly can.
 
-Look at the rendered deck before you send it, at desktop and phone widths and in light and dark mode. Check that every picture loads and reads at its size, that before-and-after rows stack on a phone, and that nothing scrolls sideways. Make one pass of fixes, then ship.
+No slide may scroll. When Node and Playwright are available, run `node <skill-directory>/scripts/check_fit.js <deck.html>`: it opens the deck at three laptop sizes and names any slide that overflows its box and how far the page had to shrink it (the page shrinks an overflowing slide by itself, but a shrunk slide is a slide with too much on it). Fix every overflow at 1280 by 720 by cutting words or splitting the slide. Then look at the rendered deck yourself, at desktop and phone widths and in light and dark mode: every picture loads and reads at its size, before-and-after rows stack on a phone, nothing scrolls sideways. Make one pass of fixes, then ship.
 
 Deliver `deck.html` and only `deck.html` (see One HTML file, nothing else). If an Artifact or page-publishing tool is available (Claude), publish `deck.html` (it is self-contained) and link it. Otherwise (Cursor, Codex, ChatGPT and the rest) write it to disk, open it in the browser if you can, and always end your message with the one line the renderer prints, "Open the deck in a browser: file://…", so he can click straight to it. A hand-built deck gets the same line with its own path. If the host has native decision cards, also post the single most time-sensitive call as one card (a one-way door if there is one), so he can answer from a phone. If he answers the card, record it and drop that call from the deck.
 

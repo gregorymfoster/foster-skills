@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-VERSION = '2.2.0'
+VERSION = '2.8.0'
 KINDS = ('status', 'visual', 'usage', 'decision', 'question', 'mock', 'research')
 INFO_KINDS = ('status', 'visual', 'usage')
 # Slides that ask the director for something. Each one counts as weighing in, so it breaks a run of information slides.
@@ -39,20 +39,50 @@ MAX_DECISIONS = 5
 MAX_QUESTIONS = 3
 MAX_MOCKS = 2
 MAX_SLIDES = 12
+MAX_POINTS = 3
+MAX_ASKS = 3
 SOFT_LIMIT = 390
 HARD_LIMIT = 480
 MOCK_VISUALS = ('image', 'gallery', 'slider')
 MAX_INFO_RUN = 2
+# Reader-facing words allowed per field, by shape. A director reads a slide in about twenty seconds, so every
+# sentence is short and the picture carries the rest. Over the cap is an error, not a warning: cut words, never the font.
+WORDS = {
+    'deck': {'headline': 18, 'what_it_is': 20},
+    'mission': {'statement': 20},
+    'milestone': {'label': 5},
+    'usage_summary': {'goal': 16},
+    'source': {'name': 6},
+    'metric': {'value': 3, 'label': 5},
+    'status': {'title': 10, 'lede': 22, 'why': 16, 'say': 35},
+    'visual': {'title': 10, 'lede': 22, 'why': 16, 'say': 35},
+    'usage': {'title': 10, 'lede': 22, 'why': 16, 'say': 35, 'data_from': 10},
+    'point': {'text': 10},
+    'decision': {'question': 14, 'context': 28, 'recommendation': 20, 'default': 14, 'reversibility_note': 10, 'needed_by': 6, 'say': 35},
+    'option': {'label': 5, 'consequence': 14},
+    'question': {'question': 14, 'context': 28, 'default': 14, 'needed_by': 6, 'say': 35},
+    'mock': {'title': 10, 'lede': 20, 'why': 16, 'cost': 6, 'default': 10, 'say': 35},
+    'research': {'title': 10, 'lede': 20, 'default': 12, 'say': 35},
+    'ask': {'who': 5, 'question': 16, 'learn': 14, 'how': 8},
+    'image': {'caption': 16}, 'gallery': {'caption': 16}, 'slider': {'caption': 16}, 'code': {'caption': 16},
+    'bars': {'question': 12, 'caption': 16}, 'line': {'question': 12, 'caption': 16}, 'stats': {'caption': 16},
+    'goal': {'metric': 6, 'by': 4, 'caption': 16}, 'flow': {'caption': 16}, 'compare': {'caption': 16},
+    'picture': {'label': 3}, 'bar': {'label': 5}, 'series': {'label': 4}, 'stat': {'value': 3, 'label': 6, 'change': 6},
+    'step': {'label': 5, 'detail': 8}, 'side': {'label': 3, 'text': 20}, 'link': {'label': 20},
+}
+# Words a slide may put in front of the director in total, across its prose, points, options and asks. Visual labels are capped above instead.
+SLIDE_WORDS = {'status': 80, 'visual': 50, 'usage': 80, 'decision': 120, 'question': 85, 'mock': 70, 'research': 130}
+PROSE = ('title', 'lede', 'why', 'question', 'context', 'recommendation', 'default', 'reversibility_note', 'needed_by', 'cost', 'data_from')
 IMAGE_TYPES = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml'}
 SLUG = r'[a-z0-9]+(?:-[a-z0-9]+)*'
 # Every field the renderer reads. Anything else is refused, so no agent can smuggle in its own styling or layout,
 # and a misspelled field fails loudly instead of silently vanishing from the deck.
-INFO_FIELDS = {'kind', 'title', 'lede', 'body', 'why', 'say', 'evidence', 'seconds', 'visual'}
+INFO_FIELDS = {'kind', 'title', 'lede', 'why', 'say', 'evidence', 'seconds', 'visual'}
 FIELDS = {
     'deck': {'project', 'project_id', 'window', 'what_it_is', 'mission', 'headline', 'hero', 'metrics', 'usage', 'gaps', 'slides', 'next',
              'schema_version', 'deck_id', 'created_at', 'skill_version', 'seconds'},
     'usage_summary': {'status', 'goal', 'sources', 'searched'},
-    'mission': {'statement', 'roadmap', 'progress', 'clarity', 'source'},
+    'mission': {'statement', 'roadmap', 'clarity', 'source'},
     'milestone': {'label', 'state', 'when'},
     'source': {'name', 'as_of', 'url'},
     'status': INFO_FIELDS | {'points'},
@@ -105,10 +135,29 @@ def text(obj, field, label, required=True):
     return value
 
 
+def words(value):
+    return len(str(value).split())
+
+
 def known(obj, shape, label):
+    """Refuse fields the renderer does not know, and prose longer than the director reads in twenty seconds."""
     extra = sorted(set(obj) - FIELDS[shape])
     if extra:
         raise ValueError(f'{label} has fields the renderer does not know: {", ".join(extra)}. The look is fixed; see references/components.md for what each component takes.')
+    for field, cap in WORDS.get(shape, {}).items():
+        if isinstance(obj.get(field), str) and words(obj[field]) > cap:
+            raise ValueError(f'{label} {field} is {words(obj[field])} words; keep it to {cap}. Cut words, not the font size. Detail goes in evidence or the voiceover.')
+
+
+def slide_words(slide):
+    """Every word the director reads on a slide, apart from the visual's own labels and the hidden voiceover."""
+    total = sum(words(slide.get(f, '')) for f in PROSE)
+    total += sum(words(p['text']) for p in slide.get('points', []))
+    total += sum(words(o['label']) + words(o['consequence']) for o in slide.get('options', []))
+    total += sum(words(x) for x in slide.get('suggestions', []))
+    total += sum(words(a['who']) + words(a['question']) + words(a['learn']) + words(a['how']) for a in slide.get('asks', []))
+    total += words((slide.get('visual') or {}).get('caption', ''))
+    return total
 
 
 def number(value):
@@ -270,11 +319,7 @@ def validate(data, base=Path('.')):
     known(data, 'deck', 'Deck')
     for field in ('project', 'project_id', 'window', 'headline'):
         text(data, field, 'Deck')
-    if len(data['headline']) > 180:
-        raise ValueError('headline must fit on a cover slide; keep it under 180 characters.')
     text(data, 'what_it_is', 'Deck', required=False)
-    if len(data.get('what_it_is', '')) > 240:
-        raise ValueError('what_it_is is one sentence on what the project is; keep it under 240 characters.')
     if data.get('hero') is not None:
         hero = data['hero']
         if not isinstance(hero, dict) or hero.get('type', 'image') != 'image':
@@ -289,6 +334,10 @@ def validate(data, base=Path('.')):
             raise ValueError(f'{field} must be a list of nonempty strings.')
     if not data.get('next'):
         raise ValueError('next must say what you keep working on while the calls are open.')
+    if len(data['next']) > 4 or any(words(x) > 12 for x in data['next']):
+        raise ValueError('next is at most four items of twelve words each.')
+    if len(data.get('gaps', [])) > 5 or any(words(x) > 12 for x in data.get('gaps', [])):
+        raise ValueError('gaps is at most five items of twelve words each.')
     metrics = data.get('metrics', [])
     if not isinstance(metrics, list) or len(metrics) > 4:
         raise ValueError('metrics must be a list of at most four entries.')
@@ -326,17 +375,18 @@ def validate(data, base=Path('.')):
             raise ValueError(f'{label} makes {run} information slides in a row; interleave a decision so the director can weigh in.')
         text(slide, 'title', label)
         text(slide, 'lede', label)
-        text(slide, 'body', label, required=False)
         text(slide, 'why', label, required=False)
         check_links(slide.get('evidence', []), label)
+        if not isinstance(slide.get('visual'), dict):
+            raise ValueError(f'{label} has no picture. Every information slide carries a visual: a screenshot, a before and after, or a chart drawn from its numbers (stats, bars, goal, flow or compare).')
         if kind in ('status', 'usage'):
             states = USAGE_STATES if kind == 'usage' else STATES
             default_state = states[0]
             if kind == 'usage':
                 text(slide, 'data_from', label)
             points = slide.get('points', [])
-            if not isinstance(points, list) or len(points) > 5:
-                raise ValueError(f'{label} points must be a list of at most five.')
+            if not isinstance(points, list) or len(points) > MAX_POINTS:
+                raise ValueError(f'{label} points must be a list of at most {MAX_POINTS}. Keep the ones that change what the director does; the rest goes in evidence.')
             for point in points:
                 if not isinstance(point, dict):
                     raise ValueError(f'{label} points must be objects.')
@@ -346,10 +396,10 @@ def validate(data, base=Path('.')):
                     raise ValueError(f'{label} point state must be one of {states}.')
                 if point.get('url'):
                     check_url(point['url'], label)
-            if slide.get('visual') is not None:
-                validate_visual(slide['visual'], label, base)
-        else:
-            validate_visual(slide.get('visual'), label, base)
+        validate_visual(slide['visual'], label, base)
+    for number, slide in enumerate(slides, 1):
+        if slide_words(slide) > SLIDE_WORDS[slide['kind']]:
+            raise ValueError(f'Slide {number} puts {slide_words(slide)} words in front of the director; a {slide["kind"]} slide holds {SLIDE_WORDS[slide["kind"]]}. Cut to one idea and let the picture carry it.')
     decisions = sum(s['kind'] == 'decision' for s in slides)
     questions = sum(s['kind'] == 'question' for s in slides)
     if first_call is None:
@@ -392,10 +442,6 @@ def validate(data, base=Path('.')):
         warnings.append('No mock. Show one feature or design change you would build next and ask for a reaction.')
     if not any(s['kind'] == 'research' for s in slides):
         warnings.append('No research slide. Add the questions for users whose answers would most change the plan.')
-    info = [s for s in slides if s['kind'] in INFO_KINDS]
-    pictured = sum(1 for s in info if s.get('visual'))
-    if info and pictured * 2 < len(info):
-        warnings.append(f'Only {pictured} of {len(info)} information slides have a picture. Show features with screenshots, before-and-afters or a chart.')
     without_why = [i for i, s in enumerate(slides, 1) if s['kind'] in INFO_KINDS and not s.get('why')]
     if without_why:
         warnings.append('Slides ' + ', '.join(map(str, without_why)) + ' do not say why it matters (add why).')
@@ -445,12 +491,7 @@ def validate_mission(mission):
         raise ValueError('Deck needs mission: the statement, the roadmap and progress along it, and whether the director has confirmed it. When it is a guess, say so with clarity inferred or unclear.')
     known(mission, 'mission', 'Mission')
     text(mission, 'statement', 'Mission')
-    text(mission, 'progress', 'Mission')
     text(mission, 'source', 'Mission', required=False)
-    if len(mission['statement']) > 200:
-        raise ValueError('mission statement must fit on the cover; keep it under 200 characters.')
-    if len(mission['progress']) > 200:
-        raise ValueError('mission progress is one sentence; keep it under 200 characters.')
     if mission.get('clarity') not in CLARITY:
         raise ValueError(f'mission clarity must be one of {CLARITY}.')
     if mission['clarity'] == 'confirmed' and not mission.get('source'):
@@ -474,11 +515,11 @@ def plain_language(data):
     found = []
     mission = data.get('mission', {})
     fields = [('Cover', data.get('headline', '')), ('Cover', data.get('what_it_is', '')), ('Cover', data.get('usage', {}).get('goal', '')),
-              ('Cover', mission.get('statement', '')), ('Cover', mission.get('progress', ''))]
+              ('Cover', mission.get('statement', ''))]
     fields += [('Cover', m['label']) for m in mission.get('roadmap', [])]
     for number, slide in enumerate(data['slides'], 1):
         label = f'Slide {number}'
-        for field in ('title', 'lede', 'body', 'why', 'say', 'question', 'context', 'recommendation', 'default', 'data_from', 'cost'):
+        for field in ('title', 'lede', 'why', 'say', 'question', 'context', 'recommendation', 'default', 'data_from', 'cost'):
             fields.append((label, slide.get(field, '')))
         fields += [(label, a['question'] + ' ' + a['learn']) for a in slide.get('asks', [])]
         fields += [(label, p['text']) for p in slide.get('points', [])]
@@ -533,8 +574,8 @@ def validate_research(slide, label, ids, base=None):
     for field in ('title', 'lede', 'default'):
         text(slide, field, label)
     asks = slide.get('asks')
-    if not isinstance(asks, list) or not 2 <= len(asks) <= 4:
-        raise ValueError(f'{label} research needs 2 to 4 asks.')
+    if not isinstance(asks, list) or not 2 <= len(asks) <= MAX_ASKS:
+        raise ValueError(f'{label} research needs 2 to {MAX_ASKS} asks.')
     for ask in asks:
         if not isinstance(ask, dict):
             raise ValueError(f'{label} asks must be objects.')
@@ -635,21 +676,19 @@ def render_goal(v):
 def render_info(slide, number):
     eyebrow = {'visual': 'What it looks like', 'status': 'Where things stand', 'usage': 'What the usage data says'}[slide['kind']]
     if slide['kind'] == 'usage':
-        eyebrow += f' · {esc(slide["data_from"])}'
-    body = f'<p class="body">{esc(slide["body"])}</p>' if slide.get('body') else ''
+        eyebrow += f' · {slide["data_from"]}'
     extra = ''
     if slide['kind'] in ('status', 'usage') and slide.get('points'):
         default_state = 'up' if slide['kind'] == 'usage' else 'done'
         extra = '<ul class="points">' + ''.join(f'<li class="state-{esc(p.get("state", default_state))}"><i>{esc(p.get("state", default_state).replace("-", " "))}</i><span>{link(p["text"], p.get("url"))}</span></li>' for p in slide['points']) + '</ul>'
-    if slide.get('visual'):
-        figure = render_visual(slide['visual'])
-        # A status picture sits beside its points so the slide fits without scrolling.
-        extra = f'<div class="split">{extra}{figure}</div>' if extra else figure
+    figure = render_visual(slide['visual'])
+    # A status picture sits beside its points so the slide fits without scrolling.
+    extra = f'<div class="split">{extra}{figure}</div>' if extra else figure
     why = f'<p class="why"><b>Why it matters</b>{esc(slide["why"])}</p>' if slide.get('why') else ''
     evidence = slide.get('evidence', [])
     sources = '<details class="evidence"><summary>Sources</summary>' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</details>' if evidence else ''
-    return f'''<section class="slide info {slide['kind']}" data-kind="{slide['kind']}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
-<div class="eyebrow">{eyebrow}</div><h2>{esc(slide['title'])}</h2><p class="lede">{esc(slide['lede'])}</p>{body}{extra}{why}{sources}{say(slide)}</section>'''
+    return f'''<section class="slide info {slide['kind']}" data-kind="{slide['kind']}" data-label="{esc(eyebrow)}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
+<h2>{esc(slide['title'])}</h2><p class="lede">{esc(slide['lede'])}</p>{extra}{why}{sources}{say(slide)}</section>'''
 
 
 def render_decision(slide, number, index):
@@ -669,8 +708,8 @@ def render_decision(slide, number, index):
     needed = f'<div><dt>Need it by</dt><dd>{esc(slide["needed_by"])}</dd></div>' if slide.get('needed_by') else ''
     evidence = slide.get('evidence', [])
     sources = '<p class="evidence">Sources: ' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</p>' if evidence else ''
-    return f'''<section class="slide decision {slide['timing']}" data-kind="decision" data-id="{esc(slide['id'])}" data-timing="{slide['timing']}" data-recommended="{slide['recommended']}"{current} data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
-<div class="eyebrow">{eyebrow}</div><h2>{esc(slide['question'])}</h2><p class="lede">{esc(slide['context'])}</p>
+    return f'''<section class="slide decision {slide['timing']}" data-kind="decision" data-label="{esc(eyebrow)}" data-id="{esc(slide['id'])}" data-timing="{slide['timing']}" data-recommended="{slide['recommended']}"{current} data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
+<h2>{esc(slide['question'])}</h2><p class="lede">{esc(slide['context'])}</p>
 <div class="options" style="--count:{len(slide['options'])}">{''.join(cards)}</div>
 <dl class="terms"><div class="rec-why"><dt>Why I'd pick {chr(65 + slide['recommended'])}</dt><dd>{esc(slide['recommendation'])}</dd></div><div><dt>If you don't weigh in</dt><dd>{esc(slide['default'])}</dd></div><div><dt>{rev}</dt><dd class="rev-{slide['reversibility']}">{rev_note or '&nbsp;'}</dd></div>{needed}</dl>
 <label class="note-field">Your note <textarea data-note="{esc(slide['id'])}" rows="1" placeholder="Optional. Context, a constraint, or a different option."></textarea></label>{sources}{say(slide)}</section>'''
@@ -684,8 +723,8 @@ def render_question(slide, number, index):
     needed = f'<div><dt>Need it by</dt><dd>{esc(slide["needed_by"])}</dd></div>' if slide.get('needed_by') else ''
     evidence = slide.get('evidence', [])
     sources = '<p class="evidence">Sources: ' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</p>' if evidence else ''
-    return f'''<section class="slide question" data-kind="question" data-id="{esc(slide['id'])}" data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
-<div class="eyebrow">Question {index} · Only you know this</div><h2>{esc(slide['question'])}</h2><p class="lede">{esc(slide['context'])}</p>{f'<div class="ask-split">{figure}<div>' if figure else ''}{chips}
+    return f'''<section class="slide question" data-kind="question" data-label="Question {index} · Only you know this" data-id="{esc(slide['id'])}" data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
+<h2>{esc(slide['question'])}</h2><p class="lede">{esc(slide['context'])}</p>{f'<div class="ask-split">{figure}<div>' if figure else ''}{chips}
 <label class="note-field answer">Your answer <textarea data-note="{esc(slide['id'])}" rows="2" placeholder="A sentence is plenty."></textarea></label>
 <dl class="terms"><div><dt>If you don't answer</dt><dd>{esc(slide['default'])}</dd></div>{needed}</dl>{'</div></div>' if figure else ''}{sources}{say(slide)}</section>'''
 
@@ -696,8 +735,8 @@ def render_mock(slide, number, index):
     why = f'<p class="why"><b>Why this one</b>{esc(slide["why"])}</p>' if slide.get('why') else ''
     evidence = slide.get('evidence', [])
     sources = '<p class="evidence">Sources: ' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</p>' if evidence else ''
-    return f'''<section class="slide mock" data-kind="mock" data-id="{esc(slide['id'])}" data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
-<div class="eyebrow">Mock {index} · Not built yet, your reaction</div><h2>{esc(slide['title'])}</h2><p class="lede">{esc(slide['lede'])}</p>
+    return f'''<section class="slide mock" data-kind="mock" data-label="Mock {index} · Not built yet, your reaction" data-id="{esc(slide['id'])}" data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
+<h2>{esc(slide['title'])}</h2><p class="lede">{esc(slide['lede'])}</p>
 <div class="ask-split">{figure}<div>{why}{chips}
 <label class="note-field answer">What would you change? <textarea data-note="{esc(slide['id'])}" rows="2" placeholder="Optional. What's missing, what's wrong, who it's for."></textarea></label>
 <dl class="terms"><div><dt>Rough cost</dt><dd>{esc(slide['cost'])}</dd></div><div><dt>If you don't react</dt><dd>{esc(slide['default'])}</dd></div></dl></div></div>{sources}{say(slide)}</section>'''
@@ -707,8 +746,8 @@ def render_research(slide, number):
     items = ''.join(f'''<button type="button" class="ask-item" data-research="{esc(slide['id'])}" data-option="{i}" aria-pressed="false"><span class="who">{esc(a['who'])}</span><strong>{esc(a['question'])}</strong><span><b>What it would change</b> {esc(a['learn'])}</span><span><b>How we'd ask</b> {esc(a['how'])}</span></button>''' for i, a in enumerate(slide['asks']))
     evidence = slide.get('evidence', [])
     sources = '<p class="evidence">Sources: ' + ', '.join(link(e['label'], e.get('url')) for e in evidence) + '</p>' if evidence else ''
-    return f'''<section class="slide research" data-kind="research" data-id="{esc(slide['id'])}" data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
-<div class="eyebrow">Questions worth asking · Tick the ones to send</div><h2>{esc(slide['title'])}</h2><p class="lede">{esc(slide['lede'])}</p>
+    return f'''<section class="slide research" data-kind="research" data-label="Questions for users · Tick the ones to send" data-id="{esc(slide['id'])}" data-default="{esc(slide['default'])}" data-seconds="{slide['seconds']}" aria-label="Slide {number}">
+<h2>{esc(slide['title'])}</h2><p class="lede">{esc(slide['lede'])}</p>
 <div class="asks" style="--count:{len(slide['asks'])}">{items}</div>
 <label class="note-field">Your note <textarea data-note="{esc(slide['id'])}" rows="1" placeholder="Optional. A better question, or someone else to ask."></textarea></label>
 <dl class="terms"><div><dt>If you don't pick</dt><dd>{esc(slide['default'])}</dd></div></dl>{sources}{say(slide)}</section>'''
@@ -717,7 +756,7 @@ def render_research(slide, number):
 def render_mission(mission):
     steps = ''.join(f'<li class="road-{m["state"]}"><i>{esc(m["state"])}</i><span>{esc(m["label"])}</span>' + (f'<em>{esc(m["when"])}</em>' if m.get('when') else '') + '</li>' for m in mission['roadmap'])
     return (f'<div class="mission mission-{mission["clarity"]}"><p class="mission-statement"><b>Mission</b>{esc(mission["statement"])}<i>{CLARITY_LABELS[mission["clarity"]]}</i></p>'
-            f'<ol class="roadmap" aria-label="Roadmap">{steps}</ol><p class="mission-progress"><b>Progress</b>{esc(mission["progress"])}</p></div>')
+            f'<ol class="roadmap" aria-label="Roadmap">{steps}</ol></div>')
 
 
 def render_usage(usage):
@@ -735,22 +774,18 @@ def render_slides(data):
     questions = [s for s in data['slides'] if s['kind'] == 'question']
     metrics = ''.join(f'<div class="metric"><b>{esc(m["value"])}</b><span>{esc(m["label"])}</span></div>' for m in data.get('metrics', []))
     gaps = f'<p class="gaps">Not checked: {esc("; ".join(data["gaps"]))}</p>' if data.get('gaps') else ''
+    calls = sum(s['kind'] in CALL_KINDS for s in data['slides'])
     mocks = [s for s in data['slides'] if s['kind'] == 'mock']
     research = [s for s in data['slides'] if s['kind'] == 'research']
     made = sum(s['timing'] == 'made' for s in decisions)
-    plural = lambda n, word: f'{n} {word}{"s" if n != 1 else ""}'
-    asks = [plural(len(decisions), 'call')] if decisions else []
-    asks += [plural(len(questions), 'question')] if questions else []
-    asks += [plural(len(mocks), 'mock') + ' to react to'] if mocks else []
-    asks += ['questions for users to pick from'] if research else []
-    count = (', '.join(asks[:-1]) + ' and ' + asks[-1] if len(asks) > 1 else asks[0]) + ' for you' + (f'. {made} of the calls {"is" if made == 1 else "are"} about reversing something already in place' if made else '')
+    count = f'{calls} thing{"s" if calls != 1 else ""} need{"" if calls != 1 else "s"} you' + (f', {made} of them about reversing something already in place' if made else '')
     what = f'<p class="what">{esc(data["what_it_is"])}</p>' if data.get('what_it_is') else ''
     hero = render_visual(data['hero']).replace('class="figure', 'class="hero figure', 1) if data.get('hero') else ''
     usage = render_usage(data['usage']) if data.get('usage') else ''
     mission = render_mission(data['mission']) if data.get('mission') else ''
-    parts = [f'''<section class="slide cover{' has-hero' if hero else ''}" data-kind="cover" data-seconds="{SECONDS['cover']}" aria-label="Slide 1">
+    parts = [f'''<section class="slide cover{' has-hero' if hero else ''}" data-kind="cover" data-label="Check-in" data-seconds="{SECONDS['cover']}" aria-label="Slide 1">
 <div class="eyebrow">Check-in · {esc(data['project'])} · {esc(data['window'])}</div>{what}{mission}<h1>{esc(data['headline'])}</h1>{hero}
-<div class="metrics">{metrics}</div>{usage}<p class="count">{count}. About {round(data['seconds'] / 60)} minutes. Arrow keys or swipe to move; pick an option on any call slide.</p>{gaps}</section>''']
+<div class="metrics">{metrics}</div>{usage}<p class="count">{count}. About {round(data['seconds'] / 60)} minutes.</p></section>''']
     number, call, asked, mocked = 1, 0, 0, 0
     for slide in data['slides']:
         number += 1
@@ -768,11 +803,11 @@ def render_slides(data):
         else:
             parts.append(render_info(slide, number))
     nexts = ''.join(f'<li>{esc(x)}</li>' for x in data['next'])
-    parts.append(f'''<section class="slide close" data-kind="close" data-seconds="{SECONDS['close']}" aria-label="Slide {number + 1}">
-<div class="eyebrow">Wrap-up</div><h2>Your calls</h2><ol class="recap" id="recap"></ol>
+    parts.append(f'''<section class="slide close" data-kind="close" data-label="Wrap-up" data-seconds="{SECONDS['close']}" aria-label="Slide {number + 1}">
+<h2>Your calls</h2><div class="wrap"><ol class="recap" id="recap"></ol><div>
 <label class="note-field">Anything else <textarea data-note="_general" rows="2" placeholder="Optional. Priorities, worries, or a question for me."></textarea></label>
 <div class="actions"><button type="button" id="copy">Copy my calls</button><span id="copied" role="status"></span></div>
-<div class="cooking"><b>While you decide, I keep going on</b><ul>{nexts}</ul></div></section>''')
+<div class="cooking"><b>While you decide, I keep going on</b><ul>{nexts}</ul>{gaps}</div></div></div></section>''')
     return '\n'.join(parts)
 
 
@@ -806,6 +841,10 @@ Delete the ones you don't need, duplicate the ones you do, and change only the w
 - Cover mission: keep it on every deck. Use the mission-confirmed, mission-inferred or mission-unclear class with
   its label, and give each roadmap step a road-done, road-now, road-next or road-later class. When the mission is
   not confirmed, the first call is a question slide with data-id mission.
+- Each slide's data-label is the short line the top bar shows for it ("Call 1 · Coming up, your call"); keep the
+  wording of the one you copied. Slides have no heading above the title.
+- Fewer words: a title of ten words, a lede of one sentence, three points at most, and a picture on every
+  information slide. The page shrinks a slide that still overflows, but cut words before relying on that.
 - Mock slides keep the three reaction chips (Build it, Change it, Not now) as they are.
 - Bars: each fill width is the value divided by the largest value, as a percent.
 - Goal tracker: the fill width is (current - baseline) / (target - baseline) as a percent, and the dashed
@@ -823,7 +862,7 @@ def starter():
     sample = Path(__file__).resolve().parent.parent / 'assets' / 'sample' / 'deck.json'
     data, _ = validate(json.loads(sample.read_text(encoding='utf-8')), sample.parent)
     data.update(deck_id='starter', created_at='2026-01-01T00:00:00')
-    names = ['cover slide (what it is, mission and roadmap, headline, metrics)']
+    names = ['cover slide (what it is, mission and roadmap, headline, metrics, usage line)']
     for slide in data['slides']:
         visual = slide.get('visual', {}).get('type')
         names.append(f'{slide["kind"]} slide' + (f' with a {visual} visual' if visual else '') + (f' ({slide["timing"]})' if slide['kind'] == 'decision' else ''))

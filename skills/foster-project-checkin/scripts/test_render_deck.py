@@ -16,8 +16,11 @@ spec.loader.exec_module(r)
 PNG = bytes.fromhex('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082')
 
 
+STATS = dict(type='stats', stats=[dict(value='6 s', label='to find a product', change='down from 40 s', tone='good')])
+
+
 def status(title='Search is live'):
-    return dict(kind='status', title=title, lede='Internal users can search.', points=[dict(text='Index built', state='done')])
+    return dict(kind='status', title=title, lede='Internal users can search.', points=[dict(text='Index built', state='done')], visual=copy.deepcopy(STATS))
 
 
 def decision(identifier='db', timing='upcoming'):
@@ -27,7 +30,7 @@ def decision(identifier='db', timing='upcoming'):
     return d
 
 
-MISSION = dict(statement='Staff find any product in seconds.', roadmap=[dict(label='Staff search', state='done'), dict(label='Customer search', state='next')], progress='Staff search shipped.', clarity='confirmed', source='Kickoff notes')
+MISSION = dict(statement='Staff find any product in seconds.', roadmap=[dict(label='Staff search', state='done'), dict(label='Customer search', state='next')], clarity='confirmed', source='Kickoff notes')
 
 
 NO_DATA = dict(status='no-data', goal='Staff find a product in under 10 seconds', searched=['Connected analytics tools', 'Event calls in the code'])
@@ -94,6 +97,81 @@ class DeckTests(unittest.TestCase):
         self.assertTrue(any('No made decision' in w for w in warnings))
         self.assertTrue(any('No visual' in w for w in warnings))
 
+    def test_every_information_slide_needs_a_picture(self):
+        data = deck()
+        data['slides'][0].pop('visual')
+        with self.assertRaisesRegex(ValueError, 'no picture'):
+            r.validate(data)
+
+    def test_words_are_capped_per_field_and_per_slide(self):
+        data = deck()
+        data['slides'][0]['lede'] = ' '.join(['word'] * 23)
+        with self.assertRaisesRegex(ValueError, 'lede is 23 words; keep it to 22'):
+            r.validate(data)
+        data = deck()
+        data['headline'] = ' '.join(['word'] * 19)
+        with self.assertRaisesRegex(ValueError, 'headline is 19 words'):
+            r.validate(data)
+        data = deck()
+        data['slides'][1]['options'][0]['consequence'] = ' '.join(['word'] * 15)
+        with self.assertRaisesRegex(ValueError, 'option consequence is 15 words'):
+            r.validate(data)
+        data = deck()
+        data['slides'][2]['visual']['steps'][0]['detail'] = ' '.join(['word'] * 9)
+        with self.assertRaisesRegex(ValueError, 'step detail is 9 words'):
+            r.validate(data)
+        # Each field fits, but together they put too much in front of the director.
+        data = deck()
+        full = data['slides'][1]
+        full['options'] = [dict(label=' '.join(['opt'] * 5), consequence=' '.join(['word'] * 14)) for _ in range(4)]
+        full['context'] = ' '.join(['word'] * 28)
+        full['recommendation'] = ' '.join(['word'] * 20)
+        with self.assertRaisesRegex(ValueError, 'Slide 2 puts .* words in front of the director; a decision slide holds 120'):
+            r.validate(data)
+        data = deck()
+        data['slides'][0]['points'] = [dict(text='x')] * 4
+        with self.assertRaisesRegex(ValueError, 'at most 3'):
+            r.validate(data)
+        data = deck()
+        data['next'] = ['a'] * 5
+        with self.assertRaisesRegex(ValueError, 'four items'):
+            r.validate(data)
+        for field in ('body', 'progress'):
+            data = deck()
+            (data['slides'][0] if field == 'body' else data['mission'])[field] = 'An extra paragraph.'
+            with self.assertRaisesRegex(ValueError, 'does not know'):
+                r.validate(data)
+
+    def test_slide_labels_live_in_the_bar_and_gaps_on_the_close(self):
+        data = deck()
+        data['gaps'] = ['Support tickets']
+        data, _ = r.validate(data)
+        data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
+        page = r.page(data)
+        self.assertNotIn('<div class="eyebrow">Where things stand', page)
+        self.assertIn('data-label="Where things stand"', page)
+        self.assertIn('data-label="Call 1 · Already made, reverse?"', page)
+        self.assertIn('<span class="label" id="label"></span>', page)
+        self.assertIn('2 things need you, 1 of them about reversing something already in place. About 4 minutes.', page)
+        cover, close = page.split('<section class="slide close')
+        self.assertNotIn('Not checked', cover)
+        self.assertIn('Not checked: Support tickets', close)
+        self.assertIn('zoom:var(--fit,1)', page)
+
+    def test_sample_deck_fits_every_slide_in_a_browser(self):
+        # Needs Node with Playwright and its Chromium; otherwise the word caps are the only guard and this is skipped.
+        probe = subprocess.run(['node', '-e', "require('playwright')"], capture_output=True)
+        if probe.returncode != 0:
+            self.skipTest('Playwright is not installed for Node.')
+        sample = SCRIPT.parent.parent / 'assets' / 'sample' / 'deck.json'
+        with tempfile.TemporaryDirectory() as tmp:
+            run = subprocess.run([sys.executable, str(SCRIPT), '--deck', str(sample), '--archive', tmp], capture_output=True, text=True)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            deck = json.loads(run.stdout)['deck']
+            fit = subprocess.run(['node', str(SCRIPT.with_name('check_fit.js')), deck], capture_output=True, text=True, timeout=120)
+            self.assertEqual(fit.returncode, 0, fit.stdout + fit.stderr)
+            self.assertIn('1280x720: every slide fits', fit.stdout)
+
     def test_hostile_text_is_escaped_and_meta_cannot_close_script(self):
         data = deck()
         data['headline'] = '<script>alert(1)</script> @@SLIDES@@'
@@ -138,6 +216,7 @@ class DeckTests(unittest.TestCase):
             self.assertIn('width:15.0%', page)
             self.assertIn('Why it matters', page)
             self.assertIn('A search box for the whole catalog.', page)
+            self.assertIn('2 things need you', page)
             self.assertIn('<details class="evidence">', page)
             bad = deck()
             bad['slides'][2]['visual'] = dict(type='gallery', images=[dict(src='a.png', alt='x', label='Only one')])
@@ -155,7 +234,6 @@ class DeckTests(unittest.TestCase):
         data = deck()
         data['slides'] = [status('a'), decision('x'), status('b'), decision('y')]
         _, warnings = r.validate(data)
-        self.assertTrue(any('have a picture' in w for w in warnings))
         self.assertTrue(any('why it matters' in w for w in warnings))
 
     def test_unknown_fields_are_refused(self):
@@ -181,10 +259,10 @@ class DeckTests(unittest.TestCase):
         page = r.page(data)
         self.assertIn('Question 1', page)
         self.assertIn('class="chip"', page)
-        self.assertIn('1 call and 1 question for you', page)
+        self.assertIn('2 things need you. About 4 minutes.', page)
         # The page script reads calls from the markup, so the markup must carry them.
-        self.assertIn('data-kind="question" data-id="who" data-default="I treat them the same."', page)
-        self.assertIn('data-kind="decision" data-id="db" data-timing="upcoming" data-recommended="1" data-default="I go with Postgres."', page)
+        self.assertIn('data-kind="question" data-label="Question 1 · Only you know this" data-id="who" data-default="I treat them the same."', page)
+        self.assertIn('data-kind="decision" data-label="Call 1 · Coming up, your call" data-id="db" data-timing="upcoming" data-recommended="1" data-default="I go with Postgres."', page)
         self.assertNotIn('calls', page.split('<script type="application/json" id="meta">')[1].split('</script>')[0])
         data = deck()
         data['slides'] = [status('a'), question, status('b')]
@@ -240,7 +318,7 @@ class DeckTests(unittest.TestCase):
         self.assertEqual(data['seconds'], 25 + 35 + 50 + 40 + 50 + 25)
         data.update(deck_id='d1', created_at='2026-10-24T00:00:00')
         page = r.page(data)
-        self.assertIn('What the usage data says · search event log, Oct 1 to 26', page)
+        self.assertIn('data-label="What the usage data says · search event log, Oct 1 to 26"', page)
         self.assertIn('<i>data gap</i>', page)
         self.assertIn('class="goal goal-at-risk"', page)
         self.assertIn('width:74.7%', page)
@@ -271,6 +349,7 @@ class DeckTests(unittest.TestCase):
         data['slides'][2]['kind'] = 'status'
         data['slides'][2].pop('data_from')
         data['slides'][2]['points'] = []
+        data['slides'][2]['visual'] = copy.deepcopy(STATS)
         with self.assertRaisesRegex(ValueError, 'give it a usage slide'):
             r.validate(data)
         data = self.usage_deck()
@@ -351,14 +430,14 @@ class DeckTests(unittest.TestCase):
         self.assertIn('data-kind="mock"', page)
         self.assertIn('Build it', page)
         self.assertIn('class="ask-item" data-research="users"', page)
-        self.assertIn('1 mock to react to', page)
+        self.assertIn('3 things need you', page)
         bad = copy.deepcopy(data)
         bad['slides'][1]['visual'] = dict(type='stats', stats=[dict(value='1', label='x')])
         with self.assertRaisesRegex(ValueError, 'picture of the idea'):
             r.validate(bad)
         bad = copy.deepcopy(data)
         bad['slides'][4]['asks'] = bad['slides'][4]['asks'][:1]
-        with self.assertRaisesRegex(ValueError, '2 to 4 asks'):
+        with self.assertRaisesRegex(ValueError, '2 to 3 asks'):
             r.validate(bad)
         bad = copy.deepcopy(data)
         bad['slides'][4]['asks'][0]['extra'] = 1

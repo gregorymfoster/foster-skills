@@ -33,21 +33,23 @@ If nothing fits, use the closest component and say what was missing in `gaps`. A
 
 ## Slides
 
-**status**: eyebrow "Where things stand", a claim as the title, the lede, up to five points with a state chip (`done`, `moving`, `blocked`, `dropped`, `risk`), and an optional visual beside the points.
+Every slide names its kind in the top bar ("Where things stand", "Call 2 · Coming up, your call") rather than in a label above the title, so the title is the first thing read. Nothing on a slide scrolls: the renderer caps the words, and the page shrinks a slide that still overflows.
 
-**usage**: eyebrow "What the usage data says" plus where the data came from and the dates it covers, then the title, the lede, up to five findings with a state chip (`up`, `down`, `flat`, `surprise`, `data-gap`, `blocked`), and an optional visual beside them, usually a `goal` or a `line`. [usage-data.md](usage-data.md) covers finding and reading the data.
+**status**: a claim as the title, the lede, up to three points with a state chip (`done`, `moving`, `blocked`, `dropped`, `risk`), and a visual beside the points.
 
-**visual**: eyebrow "What it looks like", the title, the lede, and one full-width visual.
+**usage**: the bar says where the data came from and the dates it covers; the slide has the title, the lede, up to three findings with a state chip (`up`, `down`, `flat`, `surprise`, `data-gap`, `blocked`), and a visual beside them, usually a `goal` or a `line`. [usage-data.md](usage-data.md) covers finding and reading the data.
 
-**decision**: eyebrow "Call N", an amber left edge, two to four option cards (A, B, C, D) tagged "My rec" and "In effect now", then the recommendation, the default, how reversible it is, and a note field.
+**visual**: the title, the lede, and one full-width visual.
 
-**question**: eyebrow "Question N · Only you know this", a blue left edge, the context, optional quick-answer chips, a free-text answer, and what you will assume if he doesn't answer. With a visual, the picture sits on the left and the answer on the right. Use a question when you can't honestly write the options, for example "Which customers matter most for this?" or "Does this match what you saw in the store?". When you can write the options, make it a decision.
+**decision**: an amber frame, two to four option cards (A, B, C, D) tagged "My rec" and "In effect now", then the recommendation, the default, how reversible it is, and a note field.
 
-**mock**: eyebrow "Mock N · Not built yet, your reaction", a blue dashed edge so it never reads as shipped work, the picture stamped "Mock" on the left, and on the right why this idea, the reactions Build it, Change it and Not now, a note field, the rough cost and the default.
+**question**: a blue frame, the context, optional quick-answer chips, a free-text answer, and what you will assume if he doesn't answer. With a visual, the picture sits on the left and the answer on the right. Use a question when you can't honestly write the options, for example "Which customers matter most for this?" or "Does this match what you saw in the store?". When you can write the options, make it a decision.
 
-**research**: eyebrow "Questions worth asking · Tick the ones to send", a blue left edge, and two to four ask cards. Each card names who to ask, the exact question, what the answer would change, and how we'd ask. Ticking a card marks it "Send it"; several can be ticked.
+**mock**: a blue dashed frame so it never reads as shipped work, the picture stamped "Mock" on the left, and on the right why this idea, the reactions Build it, Change it and Not now, a note field, the rough cost and the default.
 
-The cover opens with the mission block on every deck: the mission statement with a chip saying how sure we are of it (Confirmed by you, My reading. Confirm?, or Unclear. I need you), the roadmap as a strip of milestones (done in green, now in amber, next and later in gray), and one progress line. It also carries a usage line on every deck, built from the deck's `usage` summary: the status chip, the goal in words, and the data sources with how fresh each is, or "Nothing measures this yet" with where you looked.
+**research**: a blue frame and two or three ask cards in one row. Each card names who to ask, the exact question, what the answer would change, and how we'd ask. Ticking a card marks it "Send it"; several can be ticked.
+
+The cover opens with the mission block on every deck: the mission statement with a chip saying how sure we are of it (Confirmed by you, My reading. Confirm?, or Unclear. I need you) and the roadmap as a strip of milestones (done in green, now in amber, next and later in gray). It also carries a usage line on every deck, built from the deck's `usage` summary: the status chip, the goal in words, and the data sources with how fresh each is, or "Nothing measures this yet" with where you looked.
 
 Every kind of ask shows on the progress track (amber for decisions, blue for questions, mocks and research) and in the closing recap, and all of them go into the "Copy my calls" text.
 

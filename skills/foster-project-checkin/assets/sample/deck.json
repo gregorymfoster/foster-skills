@@ -2,20 +2,20 @@
   "project": "Catalog search (sample)",
   "project_id": "sample-catalog-search",
   "window": "Since Oct 17 (last check-in)",
-  "what_it_is": "A search box that lets store staff find any product in the catalog, instead of scrolling a list sorted by date.",
-  "headline": "Staff now find the right product on the first try most of the time. Customers still see the old page, and one call about that is yours.",
+  "what_it_is": "A search box that lets store staff find any product in the catalog.",
+  "headline": "Staff find the right product on the first try. Customers still see the old page.",
   "metrics": [
     {
       "value": "6 s",
-      "label": "to find a product, down from 40"
+      "label": "to find a product"
     },
     {
       "value": "87%",
-      "label": "right product in the top three"
+      "label": "right in the top three"
     },
     {
       "value": "2",
-      "label": "old apps still on the old search"
+      "label": "apps on the old search"
     }
   ],
   "usage": {
@@ -39,8 +39,8 @@
     {
       "kind": "question",
       "id": "mission",
-      "question": "Is this still the mission, and is the order on the roadmap right?",
-      "context": "Nobody has written the goal down since kickoff. I pieced this together from the kickoff notes and the roadmap file. If customers matter more than staff now, the plan flips.",
+      "question": "Is this still the mission, in this order?",
+      "context": "Nobody wrote the goal down since kickoff, so this is my reading. If customers now matter more than staff, the plan flips.",
       "visual": {
         "type": "flow",
         "steps": [
@@ -72,14 +72,10 @@
     {
       "kind": "status",
       "title": "Search is live for every staff member",
-      "lede": "Anyone on staff can type a product name and get the best match first. Customers still see the old page.",
+      "lede": "Staff type a product name and get the best match first. Customers still see the old page.",
       "points": [
         {
           "text": "Results ranked by best match",
-          "state": "done"
-        },
-        {
-          "text": "Typos still find the product",
           "state": "done"
         },
         {
@@ -97,18 +93,18 @@
           {
             "value": "6 s",
             "label": "to find a product",
-            "change": "34 s faster than the old page",
+            "change": "down from 40 s",
             "tone": "good"
           },
           {
             "value": "87%",
-            "label": "right product in the top three",
+            "label": "right in the top three",
             "change": "up from 41%",
             "tone": "good"
           }
         ]
       },
-      "why": "Store staff stop asking engineers to look products up for them.",
+      "why": "Staff stop asking engineers to look products up.",
       "say": "The short version: staff search works and they are using it. The customer page is the open question.",
       "evidence": [
         {
@@ -124,21 +120,21 @@
       "kind": "decision",
       "id": "keep-sqlite",
       "timing": "made",
-      "question": "Keep the search index in a single file, or move it to the main database now?",
-      "context": "I kept it in one file in week one to ship fast. It works, but a nightly rebuild now takes 40 minutes and blocks updates while it runs.",
+      "question": "Keep the search index in one file, or move it to the database?",
+      "context": "One file shipped fast in week one. Now the nightly rebuild takes 40 minutes and blocks updates while it runs.",
       "options": [
         {
           "label": "Keep the single file",
           "consequence": "No migration. The nightly rebuild keeps growing with the catalog."
         },
         {
-          "label": "Move to the main database",
+          "label": "Move to the database",
           "consequence": "About two days of work. Rebuilds stop blocking updates."
         }
       ],
       "current": 0,
       "recommended": 1,
-      "recommendation": "Two days today. It gets more expensive with every feature we add on top.",
+      "recommendation": "Two days today. More with every feature we add on top.",
       "default": "Keep the single file and raise it again next check-in.",
       "reversibility": "costly",
       "reversibility_note": "Cheap until the filters land next week.",
@@ -153,7 +149,7 @@
     {
       "kind": "visual",
       "title": "The same search, before and after",
-      "lede": "The old page listed the newest products first, so the mug a staff member wanted sat at the bottom. Now it comes first.",
+      "lede": "The old page listed newest products first, so the mug sat at the bottom. Now it comes first.",
       "visual": {
         "type": "slider",
         "before": {
@@ -166,26 +162,26 @@
           "alt": "New results: the blue mug first, close matches below",
           "label": "After"
         },
-        "caption": "Drag the handle. Same query on Oct 10 and today."
+        "caption": "Drag the handle. Same query, Oct 10 and today."
       },
       "why": "The first result is the one they wanted, so nobody scrolls."
     },
     {
       "kind": "usage",
       "data_from": "search event log, Sep 22 to Oct 26",
-      "title": "112 of 200 stores search every week, behind the pace for December",
-      "lede": "Use grew fast after launch, then flattened. At this rate about 130 stores search weekly by Dec 1, short of the 150 we aimed for.",
+      "title": "112 of 200 stores search weekly, behind pace for December",
+      "lede": "Use grew fast after launch, then flattened. At this rate about 130 stores by Dec 1, not 150.",
       "points": [
         {
-          "text": "Stores that try it stick: 9 in 10 come back the next week",
+          "text": "9 in 10 stores that try it come back",
           "state": "up"
         },
         {
-          "text": "Night shifts search three times as often as day shifts",
+          "text": "Night shifts search three times as often",
           "state": "surprise"
         },
         {
-          "text": "Two stores' handheld scanners never report searches, so their use is invisible",
+          "text": "Two stores' scanners never report searches",
           "state": "data-gap"
         }
       ],
@@ -197,9 +193,9 @@
         "projected": 130,
         "by": "Dec 1",
         "status": "at-risk",
-        "caption": "The dashed line extends the last three weeks in a straight line."
+        "caption": "Dashed line: the last three weeks, extended."
       },
-      "why": "Stores that start keep going, so the gap is the stores that haven't tried it yet.",
+      "why": "Stores that start keep going. The gap is the stores that never tried it.",
       "say": "Adoption is real but stalling. The fix is reaching the 88 stores that never opened it, not making search better for the ones that did.",
       "evidence": [
         {
@@ -216,26 +212,26 @@
     {
       "kind": "research",
       "id": "user-questions",
-      "title": "Three questions to store staff would settle the next month of work",
-      "lede": "Each answer changes what I build next. Tick the ones worth sending and I'll put them in the weekly store email.",
+      "title": "Three questions to staff would settle next month",
+      "lede": "Each answer changes what I build next. Tick the ones worth sending.",
       "asks": [
         {
-          "who": "Stores that tried search once",
+          "who": "Stores that tried once",
           "question": "What made you go back to the old way?",
           "learn": "Whether the 88 missing stores need training or a better search.",
-          "how": "Two-line email to the 40 store managers"
+          "how": "Two-line email to store managers"
         },
         {
           "who": "Night-shift staff",
           "question": "What do you search for most at night?",
           "learn": "Whether night restocking needs its own shortcut.",
-          "how": "One-tap poll on the search page after 8pm"
+          "how": "One-tap poll after 8pm"
         },
         {
           "who": "Customers at the counter",
-          "question": "Would you look this up yourself on your phone?",
-          "learn": "Whether the customer launch is worth doing before filters.",
-          "how": "Staff ask five customers each this week"
+          "question": "Would you look this up on your phone?",
+          "learn": "Whether the customer launch comes before filters.",
+          "how": "Staff ask five customers each"
         }
       ],
       "default": "Send the first one only.",
@@ -248,8 +244,8 @@
     {
       "kind": "mock",
       "id": "soldout-lookalikes",
-      "title": "When the mug is sold out, show what's on the shelf instead",
-      "lede": "Today a sold-out item still tops the list and staff scroll to find something in stock. This mock moves two in-stock lookalikes up and says when the original is back.",
+      "title": "Sold out? Show what is on the shelf instead",
+      "lede": "Today a sold-out item still tops the list. The mock moves two in-stock lookalikes up.",
       "visual": {
         "type": "slider",
         "before": {
@@ -262,10 +258,10 @@
           "alt": "Mock: sold-out mug marked, two in-stock lookalikes on top",
           "label": "Mock"
         },
-        "caption": "Drawn by hand, nothing is built. Same query as the before and after slide."
+        "caption": "Drawn by hand, nothing is built."
       },
-      "why": "Staff in two stores asked for exactly this, and it targets the stores that tried search once and stopped.",
-      "cost": "About three days, using stock levels we already load.",
+      "why": "Two stores asked for exactly this, and it targets stores that tried once and stopped.",
+      "cost": "About three days.",
       "default": "Park it until filters ship.",
       "evidence": [
         {
@@ -278,7 +274,7 @@
       "id": "customer-launch",
       "timing": "upcoming",
       "question": "Turn on the new search for customers this month?",
-      "context": "Staff results are good. Customers type differently, and we have not tested with them. A launch is public, so I won't do it without you.",
+      "context": "Staff results are good. Customers type differently and we have not tested with them. A launch is public, so it's yours.",
       "options": [
         {
           "label": "Launch to 10% of customers",
@@ -294,7 +290,7 @@
         }
       ],
       "recommended": 0,
-      "recommendation": "A small launch tells us how customers search without betting the store on it.",
+      "recommendation": "A small launch shows how customers search without betting the store on it.",
       "default": "Wait. Nothing customer-facing changes without your call.",
       "reversibility": "one-way",
       "reversibility_note": "Customers see it the moment it is on.",
@@ -306,7 +302,7 @@
     "Moving the warehouse scanner to the new search"
   ],
   "mission": {
-    "statement": "Every store's staff can find any product in seconds, so customers get an answer at the shelf instead of a shrug.",
+    "statement": "Every store's staff can find any product in seconds, so customers get an answer at the shelf.",
     "roadmap": [
       {
         "label": "Staff search",
@@ -314,21 +310,20 @@
         "when": "Oct 14"
       },
       {
-        "label": "Every store using it weekly",
+        "label": "Every store weekly",
         "state": "now",
         "when": "Dec 1"
       },
       {
-        "label": "Customer search on the website",
+        "label": "Customer search online",
         "state": "next",
         "when": "December"
       },
       {
-        "label": "Retire the old search",
+        "label": "Retire old search",
         "state": "later"
       }
     ],
-    "progress": "Step one shipped. Step two is at 112 of 150 stores and stalling, so the customer launch is the next real call.",
     "clarity": "inferred",
     "source": "Kickoff notes, Sep 12, and the roadmap file"
   }

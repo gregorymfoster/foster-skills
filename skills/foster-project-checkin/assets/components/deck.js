@@ -30,16 +30,31 @@
     track.appendChild(b);
   });
 
+  const label = document.getElementById('label');
+
   function show(i) {
     current = Math.max(0, Math.min(slides.length - 1, i));
     if (current > 0 && started === null) started = Date.now();
     seen.add(current);
     slides.forEach((s, n) => s.classList.toggle('active', n === current));
+    label.textContent = slides[current].dataset.label || '';
+    label.className = 'label ' + slides[current].dataset.kind;
+    fit(slides[current]);
     [...track.children].forEach((b, n) => { b.classList.toggle('seen', seen.has(n)); b.setAttribute('aria-current', n === current); });
     document.getElementById('pos').textContent = (current + 1) + ' / ' + slides.length;
     if (slides[current].dataset.kind === 'close') recap();
     history.replaceState(null, '', '#' + (current + 1));
   }
+
+  // A slide never scrolls: when one still overflows its box, shrink its contents a step at a time (down to 70%).
+  // The renderer's word caps mean this rarely runs; on a phone the page scrolls instead.
+  function fit(s) {
+    s.style.removeProperty('--fit');
+    if (matchMedia('(max-width:760px)').matches || matchMedia('print').matches) return;
+    let f = 1;
+    while (s.scrollHeight > s.clientHeight + 1 && f > 0.7) { f -= 0.05; s.style.setProperty('--fit', f.toFixed(2)); }
+  }
+  addEventListener('resize', () => fit(slides[current]));
 
   // The recap line and the copied reply both say what kind of answer each ask got.
   const answerWord = {decision: 'Call', question: 'Answer', mock: 'Reaction', research: 'Ask users'};
@@ -133,7 +148,8 @@
   const voice = document.getElementById('voice');
   const setQuiet = q => { state.quiet = q; document.body.classList.toggle('quiet', q); voice.setAttribute('aria-pressed', !q); save(); };
   voice.addEventListener('click', () => setQuiet(!state.quiet));
-  setQuiet(!!state.quiet);
+  // The voiceover starts hidden: the slide should carry itself, and V shows the spoken version.
+  setQuiet(state.quiet === undefined ? true : !!state.quiet);
 
   document.getElementById('prev').addEventListener('click', () => show(current - 1));
   document.getElementById('next').addEventListener('click', () => show(current + 1));
